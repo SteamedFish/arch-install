@@ -14,7 +14,7 @@ source "$SCRIPT_DIR/lib/disk.sh"
 source "$SCRIPT_DIR/lib/modules.sh"
 
 # ---- 默认值 ----
-TARGET="" SIZE="20G" PROFILE="server" DISTRO="arch" DESKTOP="niri"
+TARGET="" SIZE="32G" PROFILE="server" DISTRO="arch" DESKTOP="niri"
 CACHYOS_KERNEL="default" CACHYOS_REPO="auto" CPUTYPE="auto" MIRRORLIST="copy"
 EXTRA_MODULES="" SKIP_MODULES="" DRY_RUN=0 FORCE=0
 CONFIG_FILE="$SCRIPT_DIR/config/config.sh"
@@ -27,7 +27,7 @@ usage() {
   --target PATH          /dev/sdX|/dev/nvmeXn1 → 物理盘;文件路径 → raw 镜像
 
 常用选项:
-  --size SIZE            镜像大小(默认 20G)
+  --size SIZE            镜像大小(默认 32G;mem-zswap 默认带 4G swapfile)
   --profile NAME         server | desktop(默认 server)
   --distro NAME          arch | cachyos(默认 arch)
   --desktop NAME         niri | kde(仅 desktop,默认 niri)

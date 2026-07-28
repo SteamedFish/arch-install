@@ -125,6 +125,10 @@ check "mem-zswap 与 mem-zram 互斥" "grep -q 'echo mem-zram' modules/mem-zswap
 check "mem-zram 装 zram-generator" "grep -q 'pacman_install zram-generator' modules/mem-zram.sh"
 check "mem-zswap 用 tmpfiles 配置" "grep -q 'tmpfiles.d/zswap.conf' modules/mem-zswap.sh"
 check "mem-zswap 启用 zstd" "grep -q 'compressor - - - - zstd' modules/mem-zswap.sh"
+check "mem-zswap 建 btrfs swapfile" "grep -q 'btrfs filesystem mkswapfile' modules/mem-zswap.sh"
+check "mem-zswap 依赖 filesystems" "grep -q 'echo filesystems' modules/mem-zswap.sh"
+check "swapfile 大小可配置" "grep -q MY_SWAP_SIZE modules/mem-zswap.sh"
+check "config 模板含 MY_SWAP_SIZE" "grep -q MY_SWAP_SIZE config/config.example.sh"
 check "server profile 默认 mem-zswap" "grep -q mem-zswap profiles/server.conf"
 check "desktop profile 默认 mem-zswap" "grep -q mem-zswap profiles/desktop.conf"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh

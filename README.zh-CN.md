@@ -13,7 +13,7 @@
 - **预设**:`server` / `desktop`(niri 或 KDE);VPS = server + `--skip-modules hardware`;`--extra-modules` / `--skip-modules` 任意增减
 - **mirrorlist 四来源**:copy 宿主机 / 官方默认 / reflector 生成 / config 文件。文件名始终与官方包一致(`mirrorlist`、`archcn-mirrorlist`、`cachyos-mirrorlist`),随时可切回包管理;`original` 模式直接安装官方包
 - **首启自动扩容**:systemd-repart,GPT 分区与 btrfs 文件系统都扩到最大
-- **内存选项**:默认 `mem-zswap`(tmpfiles.d 纯配置文件,无需自写服务);可选 `mem-zram`(zram-generator);不想要任何 swap 就删掉该模块——两者互斥
+- **内存选项**:默认 `mem-zswap`(tmpfiles.d 纯配置文件 + btrfs NOCOW swapfile 后备,`MY_SWAP_SIZE` 默认 4G);可选 `mem-zram`(zram-generator);不想要任何 swap 就删掉该模块——两者互斥
 - **secrets 策略**:copy(镜像)/ firstboot(物理盘)/ keyfile(git-crypt 对称密钥)/ none
 - **隐私安全**:个人信息全在 `config/config.sh` 与 `config/hooks.sh`(gitignored),模板 tracked
 

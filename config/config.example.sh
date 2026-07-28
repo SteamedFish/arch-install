@@ -32,3 +32,4 @@ MY_GPU_MODULES=""                 # 例 "gpu-amd" 或 "gpu-nvidia gpu-intel",自
 # ---- 可选个性化 ----
 MY_NTP_SERVERS=""                 # 额外 NTP 服务器(空格分隔)
 MY_EXTRA_PACKAGES=""              # 追加包(不分模块的零散包,谨慎使用)
+MY_SWAP_SIZE="4G"                 # mem-zswap 后备 btrfs swapfile 大小;"0"=不建(则 zswap 不会生效)
