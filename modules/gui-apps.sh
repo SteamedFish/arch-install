@@ -5,9 +5,9 @@
 # 依赖 desktop profile 提供的显示服务器;qt5ct/qt6ct 主题工具放这里
 
 mod_install() {
-    pacman_install tokodon firefox firefox-i18n-zh-cn kgpg okular flameshot \
-        neochat telegram-desktop element-desktop yakuake \
-        android-tools ark dolphin dolphin-plugins discord kamera karchive kate \
-        smplayer gwenview haruna emacs-wayland \
+    # 只放 DE 无关应用;KDE 专属应用收拢在 desktop-kde 模块
+    # emacs-wayland:官方包 29+ 即 pgtk + native-comp,替代 archlinuxcn 的 emacs-native-comp-pgtk-git
+    pacman_install firefox firefox-i18n-zh-cn telegram-desktop element-desktop \
+        discord android-tools emacs-wayland haruna smplayer flameshot \
         qt5ct qt6ct languagetool
 }

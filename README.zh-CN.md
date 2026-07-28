@@ -6,7 +6,8 @@
 
 ## 特性
 
-- **双发行版**:Arch 与 CachyOS(内核变体与 v3/v4/znver4 仓库优化可选)
+- **双发行版**:Arch 与 CachyOS(内核变体与 v3/v4/znver4 仓库优化可选;keyring/mirrorlist 版本实时从 CDN 查询,也可用 `MY_CACHYOS_MIRRORLIST` 自带镜像列表)
+- **异构构建**:`--cputype amd|intel` 指定目标机 CPU(如在 Intel 机器上给 AMD 机器装)
 - **双目标**:raw 磁盘镜像(自动 losetup)或物理盘(自动识别,整盘抹掉,交互确认 + `--force` + 占用预检)
 - **模块化**:每功能一个 `modules/*.sh`,声明 requires/conflicts/before,解析器自动闭包 + 拓扑排序
 - **预设**:`server` / `desktop`(niri 或 KDE);VPS = server + `--skip-modules hardware`;`--extra-modules` / `--skip-modules` 任意增减
@@ -24,6 +25,7 @@ sudo ./arch-install --target /dev/sda --profile server --force
 sudo ./arch-install --target vps.img --profile server --skip-modules hardware
 sudo ./arch-install --target cachy.img --distro cachyos --cachyos-kernel bore
 ./arch-install --target x.img --profile desktop --dry-run   # 预览,不需 root
+./arch-install --modules   # 列出全部模块、依赖与顺序约束
 ```
 
 完整参数:`./arch-install --help`。
@@ -47,6 +49,19 @@ config/               config.example.sh + hooks.example.sh(tracked 模板);
 tests/run.sh          纯 bash 自测(语法、模块契约、硬约定、解析器单测、dry-run)
 docs/plans/           设计文档与执行计划
 ```
+
+## 模块速览
+
+```
+基础:      base pacman growfs ssh
+系统:      security filesystems chrony sysctl firewall debug monitoring hardware backup
+网络:      network-networkd(server)/ network-nm(desktop)
+工具:      cli-tools dev-tools docker virt
+桌面:      audio fonts ime bluetooth desktop-niri desktop-kde gui-apps gaming
+显卡(可选): gpu-amd gpu-nvidia gpu-intel
+```
+
+`[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。
 
 ## 模块接口
 

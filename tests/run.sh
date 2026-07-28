@@ -94,7 +94,23 @@ fi
 check "dry-run server" "./arch-install --target /tmp/x.img --profile server --dry-run >/dev/null 2>&1"
 check "dry-run desktop niri" "./arch-install --target /tmp/x.img --profile desktop --desktop niri --dry-run >/dev/null 2>&1"
 check "dry-run cachyos" "./arch-install --target /tmp/x.img --profile server --distro cachyos --cachyos-kernel bore --dry-run >/dev/null 2>&1"
-check "dry-run 输出含模块顺序" "./arch-install --target /tmp/x.img --profile desktop --desktop niri --dry-run 2>/dev/null | grep -q 'desktop-niri'"
+dryrun_out=$(./arch-install --target /tmp/x.img --profile desktop --desktop niri --dry-run 2>/dev/null)
+check "dry-run 输出含模块顺序" "grep -q desktop-niri <<<'$dryrun_out'"
+
+# ---- 7. 专项断言 ----
+check "debug 模块存在" "[[ -f modules/debug.sh ]]"
+check "gaming 含 archlinuxcn 包" "grep -q an-anime-game-launcher-bwrap modules/gaming.sh"
+check "cachyos 查询最新版" "grep -q _cachyos_latest_pkg_url distro/cachyos.sh"
+check "cachyos 支持自有 mirrorlist" "grep -q MY_CACHYOS_MIRRORLIST distro/cachyos.sh"
+check "支持 --cputype" "grep -q -- '--cputype' arch-install"
+check "KDE 专属应用在 desktop-kde" "grep -qw dolphin modules/desktop-kde.sh"
+if grep -qw 'dolphin\|kate\|tokodon' modules/gui-apps.sh; then
+    bad "gui-apps 不应含 KDE 专属应用"
+else
+    ok "gui-apps 无 KDE 专属应用"
+fi
+modules_list=$(./arch-install --modules 2>/dev/null)
+check "--modules 输出含 desktop-niri" "grep -q desktop-niri <<<'$modules_list'"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo

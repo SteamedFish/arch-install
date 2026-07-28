@@ -15,7 +15,7 @@ source "$SCRIPT_DIR/lib/modules.sh"
 
 # ---- 默认值 ----
 TARGET="" SIZE="20G" PROFILE="server" DISTRO="arch" DESKTOP="niri"
-CACHYOS_KERNEL="default" CACHYOS_REPO="auto" MIRRORLIST="copy"
+CACHYOS_KERNEL="default" CACHYOS_REPO="auto" CPUTYPE="auto" MIRRORLIST="copy"
 EXTRA_MODULES="" SKIP_MODULES="" DRY_RUN=0 FORCE=0
 CONFIG_FILE="$SCRIPT_DIR/config/config.sh"
 
@@ -33,8 +33,11 @@ usage() {
   --desktop NAME         niri | kde(仅 desktop,默认 niri)
   --cachyos-kernel NAME  default|bore|bmq|lts|server|hardened|rt-bore|eevdf|rc
   --cachyos-repo NAME    auto|v3|v4|znver4(默认 auto,自动检测)
+  --cputype NAME         auto|amd|intel(默认 auto;异构构建时指定目标机 CPU,
+                         如在 Intel 机器上给 AMD 机器装)
   --mirrorlist MODE      copy|original|reflector|config(默认 copy)
-  --extra-modules a,b    额外启用模块
+  --extra-modules a,b    额外启用模块(--modules 可查看全部模块名)
+  --modules              列出全部模块名、依赖与顺序约束
   --skip-modules a,b     跳过模块(VPS: --skip-modules hardware)
   --config FILE          指定 config.sh 路径
   --dry-run              只打印计划不执行
@@ -53,10 +56,12 @@ parse_args() {
             --desktop) DESKTOP=$2; shift 2 ;;
             --cachyos-kernel) CACHYOS_KERNEL=$2; shift 2 ;;
             --cachyos-repo) CACHYOS_REPO=$2; shift 2 ;;
+            --cputype) CPUTYPE=$2; shift 2 ;;
             --mirrorlist) MIRRORLIST=$2; shift 2 ;;
             --extra-modules) EXTRA_MODULES=$2; shift 2 ;;
             --skip-modules) SKIP_MODULES=$2; shift 2 ;;
             --config) CONFIG_FILE=$2; shift 2 ;;
+            --modules) print_modules; exit 0 ;;
             --dry-run) DRY_RUN=1; shift ;;
             --force) FORCE=1; shift ;;
             -h|--help) usage; exit 0 ;;
@@ -66,6 +71,7 @@ parse_args() {
     [[ -n $TARGET ]] || { usage; die "必须指定 --target"; }
     [[ -f $SCRIPT_DIR/profiles/$PROFILE.conf ]] || die "未知 profile: $PROFILE"
     [[ $DISTRO == arch || $DISTRO == cachyos ]] || die "未知 distro: $DISTRO"
+    [[ $CPUTYPE =~ ^(auto|amd|intel)$ ]] || die "未知 cputype: $CPUTYPE(auto|amd|intel)"
 }
 
 load_config() {
@@ -89,6 +95,7 @@ $([[ $TARGET_TYPE == image ]] && echo "镜像大小:  $SIZE")
 发行版:    $DISTRO$([[ $DISTRO == cachyos ]] && echo "(kernel=$CACHYOS_KERNEL repo=$CACHYOS_REPO)")
 Profile:   $PROFILE$([[ $PROFILE == desktop ]] && echo "(desktop=$DESKTOP)")
 Mirrorlist: $MIRRORLIST
+微码:      $CPUTYPE
 模块顺序:  ${RESOLVED_MODULES[*]}
 EOF
 }
@@ -100,6 +107,10 @@ main() {
     load_config
     # shellcheck source=/dev/null
     source "$SCRIPT_DIR/distro/$DISTRO.sh"
+
+    # --cputype 覆盖宿主机检测(在 Intel 机器上给 AMD 机器装时必传);
+    # 影响微码包、cachyos znver4 检测与引导项 initrd 行
+    [[ $CPUTYPE == auto ]] && CPUTYPE=$(detect_cputype)
 
     detect_target_type            # → TARGET_TYPE=disk|image
     resolve_modules "$PROFILE"    # → RESOLVED_MODULES(含 requires 闭包与拓扑序)
@@ -114,7 +125,6 @@ main() {
     mod_exec base                 # pacstrap + fstab + locale/时区/hostname
     distro_setup_repos            # cachyos:keyring + 仓库段;arch:no-op
     # 内核与微码需在 bootctl 前装好(initrd/initramfs 依赖)
-    CPUTYPE=$(detect_cputype)
     # shellcheck disable=SC2046
     pacman_install $(distro_kernel_packages) "$CPUTYPE-ucode"
     chroot_run mkinitcpio -P

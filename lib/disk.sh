@@ -112,28 +112,35 @@ timeout 5
 console-mode max
 EOF
 
-    local uuid kname=${KERNEL_PKG:-linux} ucode_line=""
+    local uuid ucode_line=""
     uuid=$(blkid -s UUID -o value "$PART_ROOT")
-    # base 模块按宿主机 CPU 装 amd-ucode/intel-ucode,有则加 initrd 行
+    # 微码 initrd 必须在内核 initramfs 之前;CPUTYPE 由主入口解析(--cputype 可覆盖)
     if [[ -n ${CPUTYPE:-} && $CPUTYPE != generic ]]; then
         ucode_line="initrd  /${CPUTYPE}-ucode.img"
     fi
 
+    # 引导项按发行版命名:CachyOS 内核包 linux-cachyos[-变体] 产生
+    # /boot/vmlinuz-linux-cachyos[-变体] 与 initramfs-linux-cachyos[-变体][-fallback].img,
+    # 与 Arch 的 vmlinuz-linux 不同,不能复用 arch.conf
+    local name title
+    if [[ ${DISTRO:-arch} == cachyos ]]; then
+        name=cachyos; title="CachyOS"
+    else
+        name=arch; title="Arch Linux"
+    fi
     mkdir -p "$MNT_DIR"/boot/loader/entries/
-    local title="Arch Linux"
-    [[ ${DISTRO:-arch} == cachyos ]] && title="CachyOS"
-    cat >"$MNT_DIR"/boot/loader/entries/arch.conf <<EOF
+    cat >"$MNT_DIR"/boot/loader/entries/$name.conf <<EOF
 title   $title
-linux   /vmlinuz-$kname
+linux   /vmlinuz-$KERNEL_PKG
 $ucode_line
-initrd  /initramfs-$kname.img
+initrd  /initramfs-$KERNEL_PKG.img
 options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw
 EOF
-    cat >"$MNT_DIR"/boot/loader/entries/arch-fallback.conf <<EOF
+    cat >"$MNT_DIR"/boot/loader/entries/$name-fallback.conf <<EOF
 title   $title (fallback initramfs)
-linux   /vmlinuz-$kname
+linux   /vmlinuz-$KERNEL_PKG
 $ucode_line
-initrd  /initramfs-$kname-fallback.img
+initrd  /initramfs-$KERNEL_PKG-fallback.img
 options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw
 EOF
 }

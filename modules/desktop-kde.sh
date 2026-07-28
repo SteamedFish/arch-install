@@ -10,6 +10,10 @@ mod_conflicts() { echo desktop-niri; }
 mod_install() {
     pacman_install plasma-meta plasma-desktop sddm-kcm konsole xorg-xwayland \
         kdeconnect bluedevil
+    # KDE 专属应用(依赖 KDE 框架,从 gui-apps 收拢到这里)
+    pacman_install dolphin dolphin-plugins kate ark okular kgpg yakuake \
+        gwenview neochat tokodon kamera karchive kio-admin \
+        ffmpegthumbs kdegraphics-thumbnailers
     if [[ ${MY_GREETER_AUTOLOGIN:-0} == 1 ]]; then
         chroot_write_file /etc/sddm.conf.d/autologin.conf <<EOF
 [Autologin]

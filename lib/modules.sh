@@ -158,3 +158,20 @@ mod_exec() {
     mod_install
     unset -f mod_install mod_requires mod_conflicts mod_before 2>/dev/null || true
 }
+
+print_modules() {
+    local f name
+    for f in "$MODULES_DIR"/*.sh; do
+        name=$(basename "$f" .sh)
+        local meta req conf bef
+        meta=$(mod_read_meta "$name")
+        req=$(_meta_field "$meta" 1)
+        conf=$(_meta_field "$meta" 2)
+        bef=$(_meta_field "$meta" 3)
+        printf '%-18s' "$name"
+        [[ -n $req ]] && printf ' requires: %s;' "$req"
+        [[ -n $conf ]] && printf ' conflicts: %s;' "$conf"
+        [[ -n $bef ]] && printf ' before: %s;' "$bef"
+        echo
+    done
+}

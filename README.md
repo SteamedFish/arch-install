@@ -6,7 +6,8 @@ Refactored from a single-file script: everything belonging to one feature (packa
 
 ## Features
 
-- **Two distros**: Arch and CachyOS (selectable kernel variants and v3/v4/znver4 repo optimization)
+- **Two distros**: Arch and CachyOS (selectable kernel variants and v3/v4/znver4 repo optimization; keyring/mirrorlist versions queried live from the CDN, or bring your own mirrorlist via `MY_CACHYOS_MIRRORLIST`)
+- **Cross-CPU builds**: `--cputype amd|intel` when building for a different machine (e.g. build for an AMD box from an Intel one)
 - **Two targets**: raw disk image (auto losetup) or physical drive (auto-detected, full wipe, interactive confirm + `--force` + in-use pre-check)
 - **Modular**: one `modules/*.sh` per feature; modules declare requires/conflicts/before; the resolver computes the closure and topo-sorts
 - **Profiles**: `server` / `desktop` (niri or KDE); VPS = server + `--skip-modules hardware`; `--extra-modules` / `--skip-modules` for arbitrary tweaks
@@ -24,6 +25,7 @@ sudo ./arch-install --target /dev/sda --profile server --force
 sudo ./arch-install --target vps.img --profile server --skip-modules hardware
 sudo ./arch-install --target cachy.img --distro cachyos --cachyos-kernel bore
 ./arch-install --target x.img --profile desktop --dry-run   # preview, no root needed
+./arch-install --modules   # list all modules, deps and ordering constraints
 ```
 
 Full options: `./arch-install --help`.
@@ -47,6 +49,19 @@ config/               config.example.sh + hooks.example.sh (tracked templates);
 tests/run.sh          pure-bash self tests (syntax, module contract, conventions, resolver unit tests, dry-run)
 docs/plans/           design doc and execution plan (Chinese)
 ```
+
+## Module overview
+
+```
+core:      base pacman growfs ssh
+system:    security filesystems chrony sysctl firewall debug monitoring hardware backup
+network:   network-networkd (server) / network-nm (desktop)
+tools:     cli-tools dev-tools docker virt
+desktop:   audio fonts ime bluetooth desktop-niri desktop-kde gui-apps gaming
+gpu (opt): gpu-amd gpu-nvidia gpu-intel
+```
+
+The `[archlinuxcn]` repo is always configured by the `pacman` module — packages like `rime-ice-git` and `an-anime-game-launcher-bwrap` only exist there. KDE-only apps (dolphin, kate, tokodon, …) live in `desktop-kde`; `gui-apps` holds DE-agnostic apps only.
 
 ## Module interface
 
