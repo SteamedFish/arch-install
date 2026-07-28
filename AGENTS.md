@@ -56,3 +56,8 @@ docs/plans/           设计与计划文档
   CachyOS 的 cachyos-settings 自带调优);ssh 模块强制 MY_SSH_PUBKEYS 并写
   authorized_keys(密码登录已禁用,无 key 即锁死);确认 systemd-repart
   静态启用无需额外配置(growfs.sh 注释)。tests 148 项全过
+- 2026-07-28:内存三选项。mem-zswap(默认,tmpfiles.d 写 zswap 参数,
+  纯配置文件无需自写 service;注意 zswap 需后备 swap 设备才生效);
+  mem-zram(zram-generator + /etc/systemd/zram-generator.conf,generator
+  自动实例化服务);两者 mod_conflicts 互斥;不要 swap 即从 profile 删行。
+  tests 155 项全过

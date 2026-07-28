@@ -118,6 +118,15 @@ check "ssh 写 authorized_keys" "grep -q authorized_keys modules/ssh.sh"
 check "ananicy-cpp 仅 cachyos" "grep -q 'DISTRO == cachyos' modules/gaming.sh"
 check "archcn 包接管镜像列表" "grep -q archcn-mirrorlist-git modules/pacman.sh"
 check "original 用 pacman-mirrorlist 包" "grep -q 'pacman_install pacman-mirrorlist' modules/pacman.sh"
+
+# ---- 9. 内存选项断言 ----
+check "mem-zram 与 mem-zswap 互斥" "grep -q 'echo mem-zswap' modules/mem-zram.sh"
+check "mem-zswap 与 mem-zram 互斥" "grep -q 'echo mem-zram' modules/mem-zswap.sh"
+check "mem-zram 装 zram-generator" "grep -q 'pacman_install zram-generator' modules/mem-zram.sh"
+check "mem-zswap 用 tmpfiles 配置" "grep -q 'tmpfiles.d/zswap.conf' modules/mem-zswap.sh"
+check "mem-zswap 启用 zstd" "grep -q 'compressor - - - - zstd' modules/mem-zswap.sh"
+check "server profile 默认 mem-zswap" "grep -q mem-zswap profiles/server.conf"
+check "desktop profile 默认 mem-zswap" "grep -q mem-zswap profiles/desktop.conf"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo

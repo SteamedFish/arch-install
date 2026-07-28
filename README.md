@@ -13,6 +13,7 @@ Refactored from a single-file script: everything belonging to one feature (packa
 - **Profiles**: `server` / `desktop` (niri or KDE); VPS = server + `--skip-modules hardware`; `--extra-modules` / `--skip-modules` for arbitrary tweaks
 - **Mirrorlist, four sources**: copy from host / upstream default / reflector-generated / config file. Filenames always match the official packages (`mirrorlist`, `archcn-mirrorlist`, `cachyos-mirrorlist`) so you can switch back to package-managed lists anytime; in `original` mode the packages themselves are installed
 - **Root auto-grow at first boot**: systemd-repart expands both the GPT partition and the btrfs filesystem
+- **Memory options**: default `mem-zswap` (tmpfiles.d config, no custom service needed); `mem-zram` (zram-generator) as alternative; remove the module for no swap at all — the two are mutually exclusive
 - **Secrets strategy**: copy (images) / firstboot (physical) / keyfile (git-crypt symmetric key) / none
 - **Privacy-safe**: personal data lives only in `config/config.sh` and `config/hooks.sh` (gitignored); templates are tracked
 
