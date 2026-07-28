@@ -21,10 +21,11 @@ CONFIG_FILE="$SCRIPT_DIR/config/config.sh"
 
 usage() {
     cat <<'EOF'
-用法: sudo ./arch-install --target <块设备|镜像路径> [选项]
+用法: sudo ./arch-install [--target] <块设备|镜像路径> [选项]
 
 必需:
   --target PATH          /dev/sdX|/dev/nvmeXn1 → 物理盘;文件路径 → raw 镜像
+                         (也可直接写裸路径,不带 --target)
 
 常用选项:
   --size SIZE            镜像大小(默认 32G;mem-zswap 默认带 4G swapfile)
@@ -65,7 +66,10 @@ parse_args() {
             --dry-run) DRY_RUN=1; shift ;;
             --force) FORCE=1; shift ;;
             -h|--help) usage; exit 0 ;;
-            *) die "未知参数: $1(--help 查看用法)" ;;
+            # 裸 positional 参数作为 --target 简写(只能出现一次)
+            -*) die "未知参数: $1(--help 查看用法)" ;;
+            *) [[ -z $TARGET ]] || die "目标只能指定一次: $1"
+               TARGET=$1; shift ;;
         esac
     done
     [[ -n $TARGET ]] || { usage; die "必须指定 --target"; }
