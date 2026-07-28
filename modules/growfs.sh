@@ -3,6 +3,8 @@
 # 原理:systemd-repart 读取 /etc/repart.d/*.conf,Type=linux-root 与本机
 # GPT 分区类型(4F68BCE3-... Linux root x86-64)匹配,首启自动扩分区 +
 # GrowFileSystem=yes 触发 btrfs 在线扩容。幂等:后续启动发现已是最大则跳过。
+# 注意:无需装额外包也无需 enable 服务——systemd-repart.service 由 systemd
+# 包静态启用(sysinit.target.wants,已实测 is-enabled=static)。
 
 mod_install() {
     log "写入 systemd-repart 扩容配置"

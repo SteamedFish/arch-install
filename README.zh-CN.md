@@ -11,7 +11,7 @@
 - **双目标**:raw 磁盘镜像(自动 losetup)或物理盘(自动识别,整盘抹掉,交互确认 + `--force` + 占用预检)
 - **模块化**:每功能一个 `modules/*.sh`,声明 requires/conflicts/before,解析器自动闭包 + 拓扑排序
 - **预设**:`server` / `desktop`(niri 或 KDE);VPS = server + `--skip-modules hardware`;`--extra-modules` / `--skip-modules` 任意增减
-- **mirrorlist 四来源**:copy 宿主机 / 官方默认 / reflector 生成 / config 文件
+- **mirrorlist 四来源**:copy 宿主机 / 官方默认 / reflector 生成 / config 文件。文件名始终与官方包一致(`mirrorlist`、`archcn-mirrorlist`、`cachyos-mirrorlist`),随时可切回包管理;`original` 模式直接安装官方包
 - **首启自动扩容**:systemd-repart,GPT 分区与 btrfs 文件系统都扩到最大
 - **secrets 策略**:copy(镜像)/ firstboot(物理盘)/ keyfile(git-crypt 对称密钥)/ none
 - **隐私安全**:个人信息全在 `config/config.sh` 与 `config/hooks.sh`(gitignored),模板 tracked

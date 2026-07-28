@@ -88,7 +88,7 @@ check "conflicts 检测(c+d 报错)" "grep -q 冲突 <<<'$conflict_err'"
 
 # ---- 6. dry-run(需要临时 config)----
 if [[ ! -f config/config.sh ]]; then
-    printf 'MY_USERNAME="dryrun-test"\n' >config/config.sh
+    printf 'MY_USERNAME="dryrun-test"\nMY_SSH_PUBKEYS=("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDummyKeyForDryRunOnly dryrun@test")\n' >config/config.sh
     CLEANUP_CONFIG=1
 fi
 check "dry-run server" "./arch-install --target /tmp/x.img --profile server --dry-run >/dev/null 2>&1"
@@ -111,6 +111,13 @@ else
 fi
 modules_list=$(./arch-install --modules 2>/dev/null)
 check "--modules 输出含 desktop-niri" "grep -q desktop-niri <<<'$modules_list'"
+
+# ---- 8. 第二轮需求断言 ----
+check "ssh 要求默认公钥" "grep -q MY_SSH_PUBKEYS modules/ssh.sh"
+check "ssh 写 authorized_keys" "grep -q authorized_keys modules/ssh.sh"
+check "ananicy-cpp 仅 cachyos" "grep -q 'DISTRO == cachyos' modules/gaming.sh"
+check "archcn 包接管镜像列表" "grep -q archcn-mirrorlist-git modules/pacman.sh"
+check "original 用 pacman-mirrorlist 包" "grep -q 'pacman_install pacman-mirrorlist' modules/pacman.sh"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo

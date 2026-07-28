@@ -50,3 +50,9 @@ docs/plans/           设计与计划文档
   profiles×2、config 模板、tests/run.sh(132 项,全过)、shellcheck 无 error、
   README × 2。修复:dry-run 免 root、EXTRA/SKIP 逗号字符串归一化、
   local 同行展开顺序(set -u)、done 保留字改名 seen、PROFILES_DIR 未定义
+- 2026-07-28:第二轮 4 项改进。mirrorlist 文件名全面对齐官方包
+  (original 模式装 pacman-mirrorlist / archcn-mirrorlist-git,--overwrite
+  覆盖引导单行文件);ananicy-cpp 仅 CachyOS 装+enable(Arch 上有问题,
+  CachyOS 的 cachyos-settings 自带调优);ssh 模块强制 MY_SSH_PUBKEYS 并写
+  authorized_keys(密码登录已禁用,无 key 即锁死);确认 systemd-repart
+  静态启用无需额外配置(growfs.sh 注释)。tests 148 项全过

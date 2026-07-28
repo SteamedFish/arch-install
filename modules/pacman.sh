@@ -11,14 +11,15 @@ mod_install() {
     chroot_run sed -i '/^#\[multilib\]/ { s/^#//; n; /^#Include/ s/^#// }' /etc/pacman.conf
 
     log "mirrorlist: $MIRRORLIST"
+    # 文件名始终与官方包一致(pacman-mirrorlist→mirrorlist、archcn-mirrorlist-git→archcn-mirrorlist),
+    # 方便随时从自管文件切回官方包管理
     case $MIRRORLIST in
         copy)
             cp /etc/pacman.d/mirrorlist "${MNT_DIR}/etc/pacman.d/mirrorlist"
             ;;
         original)
-            # 官方默认全量列表,取消所有 Server 注释,由 pacman 按顺序试
-            curl -fsSL 'https://archlinux.org/mirrorlist/all/' \
-                | sed 's/^#Server/Server/' >"${MNT_DIR}/etc/pacman.d/mirrorlist"
+            # 官方默认列表 = pacman-mirrorlist 包内容,直接装/刷新该包
+            pacman_install pacman-mirrorlist
             ;;
         reflector)
             # 在宿主机用 reflector 生成后写入目标(需求 6)
@@ -36,10 +37,16 @@ mod_install() {
     esac
 
     log "archlinuxcn 源"
-    # 固定镜像地址,不再依赖宿主机的 archcn-mirrorlist(可移植性)
-    chroot_write_file /etc/pacman.d/archcn-mirrorlist <<'EOF'
+    if [[ $MIRRORLIST == copy ]]; then
+        [[ -f /etc/pacman.d/archcn-mirrorlist ]] \
+            || die "--mirrorlist copy 但宿主机缺少 /etc/pacman.d/archcn-mirrorlist"
+        cp /etc/pacman.d/archcn-mirrorlist "${MNT_DIR}/etc/pacman.d/archcn-mirrorlist"
+    else
+        # 先用官方主站单行镜像引导,随后装 archcn-mirrorlist-git 包接管为官方完整列表
+        chroot_write_file /etc/pacman.d/archcn-mirrorlist <<'EOF'
 Server = https://repo.archlinuxcn.org/$arch
 EOF
+    fi
     # 先 TrustAll 装上 keyring 再恢复严格验签(keyring 包自身无法验签的鸡生蛋问题)
     cat >>"${MNT_DIR}/etc/pacman.conf" <<'EOF'
 
@@ -49,5 +56,10 @@ Include = /etc/pacman.d/archcn-mirrorlist
 EOF
     chroot_run pacman -Syu --noconfirm
     pacman_install archlinuxcn-keyring
+    if [[ $MIRRORLIST != copy ]]; then
+        # 官方包接管镜像列表;--overwrite 覆盖上面引导用的单行文件(该文件不属于任何包)
+        chroot_run pacman -S --needed --noconfirm \
+            --overwrite '/etc/pacman.d/archcn-mirrorlist' archcn-mirrorlist-git
+    fi
     chroot_run sed -i 's/^SigLevel = Optional/#&/' /etc/pacman.conf
 }

@@ -10,6 +10,10 @@ MY_USERNAME=""                    # 登录用户名(必填)
 MY_HOSTNAME=""                    # 空则用默认 archlinux
 MY_TIMEZONE="Asia/Shanghai"
 MY_SSH_PORT=""                    # 空则 22
+# ssh 公钥(必填,至少一个;密码登录已禁用,没有公钥装完无法登录)
+MY_SSH_PUBKEYS=(
+    # "ssh-ed25519 AAAA... you@host"
+)
 
 # ---- secrets 处理(镜像默认 copy,物理盘默认 firstboot)----
 # copy      = 安装时从宿主机 rsync ~/.ssh ~/.gnupg(仅限镜像/本机物理盘)
