@@ -1,0 +1,8 @@
+# personal config (never commit)
+config/config.sh
+config/hooks.sh
+
+# build artifacts
+*.img
+*.raw
+/tmp/
