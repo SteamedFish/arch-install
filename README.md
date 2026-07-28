@@ -1,0 +1,75 @@
+# arch-install
+
+Personal Arch / CachyOS installer. Pure bash, modular. Built for my own machines; published as reference — feel free to read and adapt.
+
+Refactored from a single-file script: everything belonging to one feature (package install, config, systemd enable) now lives in one module file; all personal data (username, keys, LAN addresses, backup target) moved into gitignored `config/`, so this repo is safe to publish.
+
+## Features
+
+- **Two distros**: Arch and CachyOS (selectable kernel variants and v3/v4/znver4 repo optimization)
+- **Two targets**: raw disk image (auto losetup) or physical drive (auto-detected, full wipe, interactive confirm + `--force` + in-use pre-check)
+- **Modular**: one `modules/*.sh` per feature; modules declare requires/conflicts/before; the resolver computes the closure and topo-sorts
+- **Profiles**: `server` / `desktop` (niri or KDE); VPS = server + `--skip-modules hardware`; `--extra-modules` / `--skip-modules` for arbitrary tweaks
+- **Mirrorlist, four sources**: copy from host / upstream default / reflector-generated / config file
+- **Root auto-grow at first boot**: systemd-repart expands both the GPT partition and the btrfs filesystem
+- **Secrets strategy**: copy (images) / firstboot (physical) / keyfile (git-crypt symmetric key) / none
+- **Privacy-safe**: personal data lives only in `config/config.sh` and `config/hooks.sh` (gitignored); templates are tracked
+
+## Usage
+
+```bash
+cp config/config.example.sh config/config.sh   # set MY_USERNAME etc.
+sudo ./arch-install --target system.img --size 15G --profile desktop --desktop niri
+sudo ./arch-install --target /dev/sda --profile server --force
+sudo ./arch-install --target vps.img --profile server --skip-modules hardware
+sudo ./arch-install --target cachy.img --distro cachyos --cachyos-kernel bore
+./arch-install --target x.img --profile desktop --dry-run   # preview, no root needed
+```
+
+Full options: `./arch-install --help`.
+
+Boot-test an image:
+
+```bash
+qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/x64/OVMF.4m.fd -drive file=system.img,format=raw
+```
+
+## Layout
+
+```
+arch-install          entry point: arg parsing, orchestration, cleanup trap
+lib/                  common (log/dep-check) disk (partition/mount/bootctl) chroot (helpers) modules (resolver)
+distro/               arch.sh / cachyos.sh (distro differences: repos, keyring, kernel)
+modules/              feature modules (interface below)
+profiles/             server.conf / desktop.conf (MODULES presets)
+config/               config.example.sh + hooks.example.sh (tracked templates);
+                      config.sh + hooks.sh (gitignored, your personal config)
+tests/run.sh          pure-bash self tests (syntax, module contract, conventions, resolver unit tests, dry-run)
+docs/plans/           design doc and execution plan (Chinese)
+```
+
+## Module interface
+
+```bash
+mod_requires()  { echo audio fonts; }        # dependencies: auto-included, ordered first
+mod_conflicts() { echo desktop-kde; }        # conflicts: hard error if combined
+mod_before()    { echo desktop-niri; }       # ordering constraint (comment why!)
+mod_install()   { pacman_install xxx; chroot_write_file ...; chroot_enable ...; }
+```
+
+Conventions:
+
+- **No hardcoded personal data** in modules; read `MY_*` vars only, skip when empty (enforced by `tests/run.sh`)
+- Install + config + service-enable for one feature must stay in the same file
+- `pacman_install` runs `pacman -Sc` after every install (image space protection)
+- Comment every install-order-sensitive spot (pacman picks `a` alphabetically for `a or b` deps)
+
+Adding a feature: write `modules/foo.sh` → add to a profile or use `--extra-modules` → sync AGENTS.md / README / CHANGELOG.
+
+## Docs
+
+- Design: `docs/plans/2026-07-28-arch-install-design.md` (Chinese)
+- Plan: `docs/plans/2026-07-28-arch-install-plan.md` (Chinese)
+- Conventions & TODO: `AGENTS.md` (Chinese)
+
+[中文 README](README.zh-CN.md)

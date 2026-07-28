@@ -95,7 +95,6 @@ EOF
 
 main() {
     parse_args "$@"
-    ((EUID == 0)) || die "请用 root 运行: sudo ./arch-install ..."
     check_deps pacstrap arch-chroot sfdisk mkfs.vfat mkfs.ext4 mkfs.btrfs \
         losetup bootctl genfstab curl rsync
     load_config
@@ -106,6 +105,7 @@ main() {
     resolve_modules "$PROFILE"    # → RESOLVED_MODULES(含 requires 闭包与拓扑序)
     print_plan
     ((DRY_RUN == 0)) || { info "dry-run,不执行"; exit 0; }
+    ((EUID == 0)) || die "请用 root 运行: sudo ./arch-install ...(dry-run 不需要 root)"
 
     prepare_target                # 镜像:qemu-img+losetup;物理盘:占用检查+确认
     trap cleanup_target EXIT      # 失败/完成都 umount + losetup -d

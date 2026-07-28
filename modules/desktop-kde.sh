@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# modules/desktop-kde.sh — KDE Plasma(Wayland)+ sddm(迁移期保留)
+# 依赖:audio fonts ime network-nm(resolver 闭包)
+# 读取变量:MY_GREETER_AUTOLOGIN(1=autologin 到 plasma,仅家中台式机)、MY_USERNAME
+# enable 服务:sddm.service、polkit.service
+
+mod_requires() { echo audio fonts ime network-nm; }
+mod_conflicts() { echo desktop-niri; }
+
+mod_install() {
+    pacman_install plasma-meta plasma-desktop sddm-kcm konsole xorg-xwayland \
+        kdeconnect bluedevil
+    if [[ ${MY_GREETER_AUTOLOGIN:-0} == 1 ]]; then
+        chroot_write_file /etc/sddm.conf.d/autologin.conf <<EOF
+[Autologin]
+User=$MY_USERNAME
+Session=plasma
+EOF
+    fi
+    chroot_enable sddm.service polkit.service
+}

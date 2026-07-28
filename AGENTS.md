@@ -34,15 +34,19 @@ docs/plans/           设计与计划文档
 
 ## TODO
 
-- [ ] 核心骨架(lib + 主入口)
-- [ ] distro/arch + distro/cachyos
-- [ ] 全部模块
-- [ ] profiles + config 模板
-- [ ] README × 2
-- [ ] 镜像端到端 qemu 验证
+- [x] 核心骨架(lib + 主入口)
+- [x] distro/arch + distro/cachyos
+- [x] 全部模块(24 个)
+- [x] profiles + config 模板
+- [x] README × 2
+- [ ] 镜像端到端 qemu 验证(需手动:构建镜像 → OVMF 启动 → 检查扩容/服务)
 - [ ] anything-sync-daemon(原脚本 TODO,待定)
 
 ## CHANGELOG
 
 - 2026-07-28:设计文档与执行计划定稿;niri/uwsm 建议文档存于旧仓库
   `arch-image-creation/niri-uwsm-notes.md`
+- 2026-07-28:全部实现完成。骨架(lib×4 + 主入口)、distro×2、模块×24、
+  profiles×2、config 模板、tests/run.sh(132 项,全过)、shellcheck 无 error、
+  README × 2。修复:dry-run 免 root、EXTRA/SKIP 逗号字符串归一化、
+  local 同行展开顺序(set -u)、done 保留字改名 seen、PROFILES_DIR 未定义
