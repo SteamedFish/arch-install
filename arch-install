@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# arch-install — 个人 Arch/CachyOS 安装器主入口
+# 用法见 README.md;设计与约定见 docs/plans/ 与 AGENTS.md
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/chroot.sh
+source "$SCRIPT_DIR/lib/chroot.sh"
+# shellcheck source=lib/disk.sh
+source "$SCRIPT_DIR/lib/disk.sh"
+# shellcheck source=lib/modules.sh
+source "$SCRIPT_DIR/lib/modules.sh"
+
+# ---- 默认值 ----
+TARGET="" SIZE="20G" PROFILE="server" DISTRO="arch" DESKTOP="niri"
+CACHYOS_KERNEL="default" CACHYOS_REPO="auto" MIRRORLIST="copy"
+EXTRA_MODULES="" SKIP_MODULES="" DRY_RUN=0 FORCE=0
+CONFIG_FILE="$SCRIPT_DIR/config/config.sh"
+
+usage() {
+    cat <<'EOF'
+用法: sudo ./arch-install --target <块设备|镜像路径> [选项]
+
+必需:
+  --target PATH          /dev/sdX|/dev/nvmeXn1 → 物理盘;文件路径 → raw 镜像
+
+常用选项:
+  --size SIZE            镜像大小(默认 20G)
+  --profile NAME         server | desktop(默认 server)
+  --distro NAME          arch | cachyos(默认 arch)
+  --desktop NAME         niri | kde(仅 desktop,默认 niri)
+  --cachyos-kernel NAME  default|bore|bmq|lts|server|hardened|rt-bore|eevdf|rc
+  --cachyos-repo NAME    auto|v3|v4|znver4(默认 auto,自动检测)
+  --mirrorlist MODE      copy|original|reflector|config(默认 copy)
+  --extra-modules a,b    额外启用模块
+  --skip-modules a,b     跳过模块(VPS: --skip-modules hardware)
+  --config FILE          指定 config.sh 路径
+  --dry-run              只打印计划不执行
+  --force                跳过物理盘确认
+  -h, --help
+EOF
+}
+
+parse_args() {
+    while (($#)); do
+        case $1 in
+            --target) TARGET=$2; shift 2 ;;
+            --size) SIZE=$2; shift 2 ;;
+            --profile) PROFILE=$2; shift 2 ;;
+            --distro) DISTRO=$2; shift 2 ;;
+            --desktop) DESKTOP=$2; shift 2 ;;
+            --cachyos-kernel) CACHYOS_KERNEL=$2; shift 2 ;;
+            --cachyos-repo) CACHYOS_REPO=$2; shift 2 ;;
+            --mirrorlist) MIRRORLIST=$2; shift 2 ;;
+            --extra-modules) EXTRA_MODULES=$2; shift 2 ;;
+            --skip-modules) SKIP_MODULES=$2; shift 2 ;;
+            --config) CONFIG_FILE=$2; shift 2 ;;
+            --dry-run) DRY_RUN=1; shift ;;
+            --force) FORCE=1; shift ;;
+            -h|--help) usage; exit 0 ;;
+            *) die "未知参数: $1(--help 查看用法)" ;;
+        esac
+    done
+    [[ -n $TARGET ]] || { usage; die "必须指定 --target"; }
+    [[ -f $SCRIPT_DIR/profiles/$PROFILE.conf ]] || die "未知 profile: $PROFILE"
+    [[ $DISTRO == arch || $DISTRO == cachyos ]] || die "未知 distro: $DISTRO"
+}
+
+load_config() {
+    if [[ ! -f $CONFIG_FILE ]]; then
+        die "缺少 $CONFIG_FILE —— 请先复制模板: cp config/config.example.sh config/config.sh"
+    fi
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+    : "${MY_USERNAME:?config.sh 中必须设置 MY_USERNAME}"
+    if [[ -f $SCRIPT_DIR/config/hooks.sh ]]; then
+        # shellcheck source=/dev/null
+        source "$SCRIPT_DIR/config/hooks.sh"
+    fi
+}
+
+print_plan() {
+    cat <<EOF
+== 安装计划 ==
+目标:      $TARGET($TARGET_TYPE)
+$([[ $TARGET_TYPE == image ]] && echo "镜像大小:  $SIZE")
+发行版:    $DISTRO$([[ $DISTRO == cachyos ]] && echo "(kernel=$CACHYOS_KERNEL repo=$CACHYOS_REPO)")
+Profile:   $PROFILE$([[ $PROFILE == desktop ]] && echo "(desktop=$DESKTOP)")
+Mirrorlist: $MIRRORLIST
+模块顺序:  ${RESOLVED_MODULES[*]}
+EOF
+}
+
+main() {
+    parse_args "$@"
+    ((EUID == 0)) || die "请用 root 运行: sudo ./arch-install ..."
+    check_deps pacstrap arch-chroot sfdisk mkfs.vfat mkfs.ext4 mkfs.btrfs \
+        losetup bootctl genfstab curl rsync
+    load_config
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/distro/$DISTRO.sh"
+
+    detect_target_type            # → TARGET_TYPE=disk|image
+    resolve_modules "$PROFILE"    # → RESOLVED_MODULES(含 requires 闭包与拓扑序)
+    print_plan
+    ((DRY_RUN == 0)) || { info "dry-run,不执行"; exit 0; }
+
+    prepare_target                # 镜像:qemu-img+losetup;物理盘:占用检查+确认
+    trap cleanup_target EXIT      # 失败/完成都 umount + losetup -d
+    partition_and_mount           # → MNT_DIR
+
+    mod_exec base                 # pacstrap + fstab + locale/时区/hostname
+    distro_setup_repos            # cachyos:keyring + 仓库段;arch:no-op
+    # 内核与微码需在 bootctl 前装好(initrd/initramfs 依赖)
+    CPUTYPE=$(detect_cputype)
+    # shellcheck disable=SC2046
+    pacman_install $(distro_kernel_packages) "$CPUTYPE-ucode"
+    chroot_run mkinitcpio -P
+    install_bootloader            # bootctl + entries(lib/disk.sh)
+
+    local m
+    for m in "${RESOLVED_MODULES[@]}"; do
+        [[ $m == base ]] && continue   # 已执行
+        mod_exec "$m"
+    done
+
+    distro_post_install
+    if declare -F hook_post_install &>/dev/null; then
+        log "执行 config/hooks.sh hook_post_install"
+        hook_post_install
+    fi
+
+    cleanup_target
+    trap - EXIT
+    info "完成!目标: $TARGET"
+    if [[ $TARGET_TYPE == image ]]; then
+        info "qemu 验证: qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/x64/OVMF.4m.fd -drive file=$TARGET,format=raw"
+    fi
+}
+
+main "$@"
