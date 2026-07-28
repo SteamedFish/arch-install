@@ -63,3 +63,6 @@ docs/plans/           设计与计划文档
   mem-zram(zram-generator + /etc/systemd/zram-generator.conf,generator
   自动实例化服务);两者 mod_conflicts 互斥;不要 swap 即从 profile 删行。
   镜像默认 --size 20G→32G(容纳 swapfile)。tests 全过
+- 2026-07-28:MY_SWAP_SIZE=0 退回 zram(mem-zswap 内回退逻辑);
+  镜像改稀疏分配(qemu-img preallocation=off,du 只占真实数据)+
+  cleanup 时 fstrim punch 空洞(配合 pacman -Scc 回收宿主机空间)

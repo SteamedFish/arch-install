@@ -33,7 +33,9 @@ prepare_target() {
     if [[ $TARGET_TYPE == image ]]; then
         if [[ ! -f $TARGET ]]; then
             log "创建镜像: $TARGET ($SIZE)"
-            qemu-img create -f raw -o preallocation=full "$TARGET" "$SIZE" >/dev/null
+            # 稀疏文件:ls 看到 $SIZE,实际只占已写入的块(du 才是真实占用),
+            # 既留足扩容余量又不浪费宿主机磁盘(原为 preallocation=full 全量分配)
+            qemu-img create -f raw -o preallocation=off "$TARGET" "$SIZE" >/dev/null
         else
             warn "镜像已存在,将被重新分区: $TARGET"
         fi
@@ -149,6 +151,8 @@ cleanup_target() {
     # 镜像最终清一次包缓存(配合 pacman_install 的每次 -Sc,防止镜像臃肿)
     if [[ ${TARGET_TYPE:-} == image && -d $MNT_DIR/usr/bin ]]; then
         arch-chroot "$MNT_DIR" pacman -Scc --noconfirm 2>/dev/null || true
+        # 把已删除块 punch 回稀疏文件(否则 -Scc 清出的空间仍占宿主机磁盘)
+        fstrim "$MNT_DIR" 2>/dev/null || true
     fi
     if mountpoint -q "$MNT_DIR" 2>/dev/null; then
         umount -R "$MNT_DIR" 2>/dev/null || umount -R --lazy "$MNT_DIR"

@@ -6,7 +6,7 @@
 # 任何 swap 使用。
 # zswap 只是 swap 前的压缩缓存,本身不是 swap 设备,必须配后备 swap 才生效
 # → 本模块同时创建 btrfs NOCOW swapfile(独立嵌套 subvol,快照不会包含)。
-# 读取变量:MY_SWAP_SIZE(默认 4G;"0"=不建 swapfile,仅写 zswap 参数)
+# 读取变量:MY_SWAP_SIZE(默认 4G;"0"=不建 swapfile,退回 zram)
 
 mod_requires() { echo filesystems; }
 mod_conflicts() { echo mem-zram; }
@@ -21,7 +21,17 @@ w /sys/module/zswap/parameters/zpool - - - - zsmalloc
 EOF
 
     local size=${MY_SWAP_SIZE:-4G}
-    [[ $size == 0 ]] && { log "MY_SWAP_SIZE=0,跳过 swapfile"; return 0; }
+    if [[ $size == 0 ]]; then
+        # 无后备 swap 设备时 zswap 永不生效 → 按约定退回 zram(自带 swap 设备)
+        log "MY_SWAP_SIZE=0,改用 zram"
+        pacman_install zram-generator
+        chroot_write_file /etc/systemd/zram-generator.conf <<'EOF'
+[zram0]
+zram-size = ram
+compression-algorithm = zstd
+EOF
+        return 0
+    fi
     log "创建 btrfs swapfile($size)"
     btrfs subvolume create "${MNT_DIR}/swap"
     # btrfs filesystem mkswapfile 自带 NOCOW/预分配/mkswap 全套校验(btrfs-progs ≥ 6.1)
