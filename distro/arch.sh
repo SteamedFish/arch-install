@@ -2,7 +2,9 @@
 # distro/arch.sh — 原版 Arch 实现
 
 distro_base_packages() {
-    echo "base linux-firmware efifs iptables-nft"
+    # btrfs-progs 必须随 pacstrap 进:内核安装触发 mkinitcpio 时若缺 btrfsck,
+    # fsck hook 报 No fsck helpers found 并使 pacman 以"构建有错"退出(实测)
+    echo "base linux-firmware efifs iptables-nft btrfs-progs"
 }
 
 distro_setup_repos() {
@@ -12,7 +14,7 @@ distro_setup_repos() {
 
 distro_kernel_packages() {
     KERNEL_PKG=linux
-    echo "linux linux-headers"
+    KERNEL_PKGS="linux linux-headers"
 }
 
 distro_post_install() {

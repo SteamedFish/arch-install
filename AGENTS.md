@@ -66,3 +66,28 @@ docs/plans/           设计与计划文档
 - 2026-07-28:MY_SWAP_SIZE=0 退回 zram(mem-zswap 内回退逻辑);
   镜像改稀疏分配(qemu-img preallocation=off,du 只占真实数据)+
   cleanup 时 fstrim punch 空洞(配合 pacman -Scc 回收宿主机空间)
+- 2026-07-29:CachyOS 路径首次端到端实证(14 次镜像 build,全部修复已验证):
+  1) cachyos.sh 补 distro_base_packages()——主入口只 source 选中的 distro 文件,
+     缺省时 pacstrap 静默退化为裸 base(缺 linux-firmware/efifs/iptables-nft)
+  2) pacman_install 固定注入 -S,与 -U/-Syu 冲突(报 only one operation):
+     四处 -U 改 chroot_run pacman -U;distro_setup_repos 的 -Syu 直写 pacman -Syu
+  3) keyring -U 的 PGP import 询问读 /dev/tty,管道/--noconfirm 均无效:
+     先 pacman-key --recv-keys + --lsign-key F3B607488DB35A47(轮换时更新 ID)
+  4) arch-chroot 把 chroot /tmp 挂成 tmpfs:sed/仓库段插入改宿主侧直接操作
+     $MNT_DIR/etc/pacman.conf;head/tail 拼接插到 [core] 之前(sed r/e 插到行后
+     会让 [core] 丢自己的 Include 行,实测)
+  5) Architecture = auto 不认 v3/v4 标签:v3→x86_64 x86_64_v3,
+     v4/znver4→x86_64 x86_64_v3 x86_64_v4([cachyos] 基础库混有 v3 标签包)
+  6) pacman 对同一 host 有错误预算(too many errors from <host>, skipping):
+     MY_CACHYOS_MIRRORLIST 含优化路径时自动拆分 opt/base 两个 mirrorlist 文件
+  7) distro_base_packages 加 btrfs-progs:内核安装触发 mkinitcpio 的 fsck hook
+     找不到 btrfsck 会以 "errors were encountered during the build" 非零退出
+  8) pacman_install 的 -Sc 前 rm -rf 缓存目录 download-* 残留(文件或目录,
+     否则 -Sc 报 Error reading fd 7)
+  9) KERNEL_PKG 契约改全局变量:函数设 KERNEL_PKG+KERNEL_PKGS 不再 echo——
+     $(distro_kernel_packages) 的子 shell 会丢掉赋值(install_bootloader 需要)
+  10) dev-tools 移除 wakatime(官方仓库没有,仅 AUR wakatime-cli)
+  已知问题:官方 extra 已下架 nvidia 闭源包(只剩 nvidia-open*),gpu-nvidia
+  模块待改;USTC/NJU 均未同步 znver4 树(空目录),国内用 v4 仓库
+  新增 config/cachyos-mirrorlist.china(NJU/USTC 四行)+ MY_CACHYOS_CDN/
+  MY_CACHYOS_MIRRORLIST 配置项;tests 171 项全过;shellcheck 无 error

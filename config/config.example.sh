@@ -33,3 +33,8 @@ MY_GPU_MODULES=""                 # 例 "gpu-amd" 或 "gpu-nvidia gpu-intel",自
 MY_NTP_SERVERS=""                 # 额外 NTP 服务器(空格分隔)
 MY_EXTRA_PACKAGES=""              # 追加包(不分模块的零散包,谨慎使用)
 MY_SWAP_SIZE="4G"                 # mem-zswap 后备 btrfs swapfile 大小;"0"=改用 zram(不建 swapfile)
+
+# ---- CachyOS(仅 --distro cachyos)----
+MY_CACHYOS_MIRRORLIST=""          # 自有 cachyos mirrorlist 文件路径;空则装官方 cachyos-(v3/v4-)mirrorlist 包
+MY_CACHYOS_CDN=""                 # keyring/mirrorlist 包的 CDN 基址;空则 cdn77。中国大陆可用
+                                  # https://mirrors.ustc.edu.cn/cachyos/repo/x86_64/cachyos

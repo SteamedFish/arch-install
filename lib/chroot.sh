@@ -10,6 +10,10 @@ chroot_run() {
 # 每次安装后清理旧版本缓存(pacman -Sc)——VM 镜像空间有限,见 plan 追加决策 3
 pacman_install() {
     chroot_run pacman -S --needed --noconfirm "$@"
+    # 先删中断下载的 download-* 残留(文件或目录都有可能,实测均出现):
+    # -Sc 会逐一读取缓存包校验,读到半截的临时文件报 Error reading fd 7
+    # 并以非零退出
+    rm -rf "$MNT_DIR"/var/cache/pacman/pkg/download-*
     chroot_run pacman -Sc --noconfirm
 }
 

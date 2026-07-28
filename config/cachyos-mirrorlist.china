@@ -1,0 +1,9 @@
+# CachyOS 国内镜像(NJU 主、USTC 备;cdn77 在本网络被重置)。
+# v4 段(cachyos-v4/core-v4/extra-v4)在 x86_64_v4/ 下,[cachyos] 段在
+# x86_64/ 下;pacman 按 $repo 展开段名,404 自动回落下一行。
+# 注意:USTC/NJU 均未同步 znver4 仓库(2026-07-29 实测目录为空),
+# 需要 znver4 时此文件不可用,改用官方 mirrorlist + 海外镜像。
+Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64_v4/$repo
+Server = https://mirrors.ustc.edu.cn/cachyos/repo/x86_64_v4/$repo
+Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64/$repo
+Server = https://mirrors.ustc.edu.cn/cachyos/repo/x86_64/$repo
