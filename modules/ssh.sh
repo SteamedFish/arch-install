@@ -15,6 +15,10 @@ PermitRootLogin no
 PasswordAuthentication no
 EOF
     chroot_enable sshd.service
+    # host key 不在安装时生成(ssh-keygen -A 会把同一组 key 烘进镜像,dd/克隆到多台
+    # 机器后 host key 全相同);改由 sshdgenkeys.service 首启自动生成——sshd.service
+    # 只有 After=sshdgenkeys.service(仅排序不拉入),必须显式 enable
+    chroot_enable sshdgenkeys.service
 
     # set -u 下未声明的数组展开会报错,先兜底
     if ! declare -p MY_SSH_PUBKEYS &>/dev/null; then MY_SSH_PUBKEYS=(); fi

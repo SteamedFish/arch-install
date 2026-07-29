@@ -115,6 +115,7 @@ check "--modules 输出含 desktop-niri" "grep -q desktop-niri <<<'$modules_list
 # ---- 8. 第二轮需求断言 ----
 check "ssh 要求默认公钥" "grep -q MY_SSH_PUBKEYS modules/ssh.sh"
 check "ssh 写 authorized_keys" "grep -q authorized_keys modules/ssh.sh"
+check "ssh 首启生成 host key" "grep -q sshdgenkeys modules/ssh.sh"
 check "ananicy-cpp 仅 cachyos" "grep -q 'DISTRO == cachyos' modules/gaming.sh"
 check "archcn 包接管镜像列表" "grep -q archcn-mirrorlist-git modules/pacman.sh"
 check "original 用 pacman-mirrorlist 包" "grep -q 'pacman_install pacman-mirrorlist' modules/pacman.sh"
