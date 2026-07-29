@@ -14,6 +14,10 @@ mod_install() {
     pacman_install dolphin dolphin-plugins kate ark okular kgpg yakuake \
         gwenview neochat tokodon kamera karchive kio-admin \
         ffmpegthumbs kdegraphics-thumbnailers
+    # CachyOS 专有:KDE 设置包与 Nord 主题(官方安装器同款,仅 [cachyos] 库有)
+    if [[ ${DISTRO:-arch} == cachyos ]]; then
+        pacman_install cachyos-kde-settings cachyos-nord-kde-theme-git
+    fi
     if [[ ${MY_GREETER_AUTOLOGIN:-0} == 1 ]]; then
         chroot_write_file /etc/sddm.conf.d/autologin.conf <<EOF
 [Autologin]

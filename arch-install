@@ -149,6 +149,10 @@ main() {
         hook_post_install
     fi
 
+    # 清空 machine-id:dd/克隆到多台机器会撞 ID(官方安装器同款处理,
+    # arch/cachyos 通用);空文件被 systemd 视为未初始化,首启自动生成
+    : >"$MNT_DIR/etc/machine-id"
+
     cleanup_target
     trap - EXIT
     info "完成!目标: $TARGET"

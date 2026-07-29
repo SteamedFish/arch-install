@@ -138,13 +138,18 @@ $ucode_line
 initrd  /initramfs-$KERNEL_PKG.img
 options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw
 EOF
-    cat >"$MNT_DIR"/boot/loader/entries/$name-fallback.conf <<EOF
+    # fallback 条目只在对应 initramfs 存在时写:CachyOS 内核 preset 只有
+    # default(实测无 initramfs-*-fallback.img,cachyos-hooks 包也不提供 preset),
+    # 写了会是指向不存在文件的坏条目;Arch 官方内核 preset 有 fallback,正常生成
+    if [[ -f $MNT_DIR/boot/initramfs-$KERNEL_PKG-fallback.img ]]; then
+        cat >"$MNT_DIR"/boot/loader/entries/$name-fallback.conf <<EOF
 title   $title (fallback initramfs)
 linux   /vmlinuz-$KERNEL_PKG
 $ucode_line
 initrd  /initramfs-$KERNEL_PKG-fallback.img
 options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw
 EOF
+    fi
 }
 
 cleanup_target() {

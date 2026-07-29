@@ -37,4 +37,13 @@ EOF
     # btrfs filesystem mkswapfile 自带 NOCOW/预分配/mkswap 全套校验(btrfs-progs ≥ 6.1)
     btrfs filesystem mkswapfile --size "$size" "${MNT_DIR}/swap/swapfile"
     echo '/swap/swapfile none swap defaults 0 0' >>"${MNT_DIR}/etc/fstab"
+
+    # 禁掉 zram-generator 默认设备:cachyos-settings 依赖 zram-generator 且自带
+    # /usr/lib/systemd/zram-generator.conf(zram-size=ram,会吃掉全部内存,
+    # 与本模块 swapfile+zswap 设计冲突)。/etc 同名文件优先于 /usr/lib,
+    # 无任何 [zramN] 段 = 不创建任何设备(实测生成器对空配置不建设备)。
+    # 注意必须只在 swapfile 路径写:上面的 MY_SWAP_SIZE=0 分支故意用 zram。
+    chroot_write_file /etc/systemd/zram-generator.conf <<'EOF'
+# 由 mem-zswap 模块写入:本机使用 swapfile+zswap,不创建 zram 设备
+EOF
 }

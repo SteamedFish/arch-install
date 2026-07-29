@@ -175,8 +175,12 @@ distro_kernel_packages() {
 }
 
 distro_post_install() {
-    # cachyos-settings:zram/ananicy/thp 等系统调优(会拉 zram-generator、ananicy-cpp 等依赖)
-    pacman_install cachyos-settings
+    # cachyos-settings:zram/ananicy/thp 等系统调优(会拉 zram-generator、ananicy-cpp 等依赖;
+    # 其 zram 默认配置由 mem-zswap 模块在 swapfile 路径下用 /etc 覆盖文件禁用)
+    # cachyos-hooks:alpm hooks(branding/os-release/update-initramfs 等)——注意它不含
+    # mkinitcpio preset,fallback initramfs 仍不会生成(install_bootloader 已按存在性跳过)
+    # cachyos-zsh-config:官方安装器对用户 shell 的同款处理(base.sh 固定 zsh)
+    pacman_install cachyos-settings cachyos-hooks cachyos-zsh-config
     # --mirrorlist reflector 时用 cachyos 官方排序工具重排(需要联网)
     if [[ ${MIRRORLIST:-copy} == reflector ]]; then
         pacman_install cachyos-rate-mirrors

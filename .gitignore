@@ -6,3 +6,4 @@ config/hooks.sh
 *.img
 *.raw
 /tmp/
+.tmp/

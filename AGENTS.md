@@ -99,3 +99,19 @@ docs/plans/           设计与计划文档
   v4/znver4 共用该文件。tests 171 项全过
   新增 config/cachyos-mirrorlist.china(NJU/USTC 四行)+ MY_CACHYOS_CDN/
   MY_CACHYOS_MIRRORLIST 配置项;tests 171 项全过;shellcheck 无 error
+- 2026-07-29:CachyOS 官方安装器(new-cli-installer)规则吸收:
+  1) desktop-kde/desktop-niri 按 DISTRO==cachyos 加 cachyos-kde-settings+
+     cachyos-nord-kde-theme-git / cachyos-niri-settings(用户指定)
+  2) distro_post_install 加 cachyos-hooks + cachyos-zsh-config(官方:
+     用户 shell=zsh 自动装;cachyos-hooks 实测只是 alpm hooks,
+     不含 mkinitcpio preset,不解决 fallback)
+  3) base.sh 用户组对齐官方:加 rfkill,sys,lp,video,network,storage,audio
+  4) mem-zswap 在 swapfile 路径写空 /etc/systemd/zram-generator.conf
+     禁掉 cachyos-settings 自带的 zram0(zram-size=ram 会吃全部内存,
+     与 swapfile+zswap 冲突;/etc 同名文件优先 /usr/lib)
+  5) arch-install 末尾清空 machine-id(dd/克隆多机防撞,首启自动生成)
+  6) install_bootloader 的 fallback 条目改为按 initramfs 文件存在性写
+     (CachyOS preset 只建 default,原条目指向不存在的 img)
+  官方调研备忘:chwd(硬件驱动自动检测)与 gpu-* 显式模块思路相反不吸收;
+  官方 btrfs @/@home/... 多 subvol 布局、systemd hook mkinitcpio、
+  zswap.enabled=0 内核参数均与本仓设计不同,不动。tests 171 项全过

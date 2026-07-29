@@ -24,7 +24,8 @@ EOF
     # 用户(zsh 由本模块先装,useradd 依赖它;cli-tools 里也有 zsh,--needed 不会重复)
     pacman_install zsh
     # docker 组仅当 docker 模块启用时加入(组不存在会导致 useradd 失败)
-    local groups="adm,log,uucp,wheel,users,games"
+    # rfkill/sys/lp/video/network/storage/audio 对齐 CachyOS 官方安装器默认组
+    local groups="adm,log,uucp,wheel,users,games,rfkill,sys,lp,video,network,storage,audio"
     [[ " ${RESOLVED_MODULES[*]:-} " == *" docker "* ]] && groups+=",docker"
     groups+="${MY_EXTRA_GROUPS:+,${MY_EXTRA_GROUPS}}"
     chroot_run useradd -m -p '*' -s /usr/bin/zsh -U -G "$groups" "$MY_USERNAME"

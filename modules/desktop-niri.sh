@@ -21,6 +21,11 @@ mod_install() {
     # dms-shell 推荐依赖(matugen 动态配色/cava 音频可视化/qt6 多媒体),
     # 与 dms 同处安装避免后续补装时的顺序问题
 
+    # CachyOS 专有:niri 设置包(仅 [cachyos] 库有)
+    if [[ ${DISTRO:-arch} == cachyos ]]; then
+        pacman_install cachyos-niri-settings
+    fi
+
     # dbus-broker 取代 dbus-daemon(uwsm/portal 栈推荐)
     chroot_run systemctl --global enable dbus-broker.service
 
