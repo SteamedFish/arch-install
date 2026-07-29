@@ -87,13 +87,15 @@ docs/plans/           设计与计划文档
   9) KERNEL_PKG 契约改全局变量:函数设 KERNEL_PKG+KERNEL_PKGS 不再 echo——
      $(distro_kernel_packages) 的子 shell 会丢掉赋值(install_bootloader 需要)
   10) dev-tools 移除 wakatime(官方仓库没有,仅 AUR wakatime-cli)
-  已知问题:官方 extra 已下架 nvidia 闭源包(只剩 nvidia-open*),gpu-nvidia
-  模块待改;USTC/NJU 均未同步 znver4 树(空目录),国内用 v4 仓库
-- 2026-07-29:gpu-nvidia 模块修复:nvidia → nvidia-open-dkms(官方仓库 2026-07
-  下架闭源 nvidia 包;DKMS 变体配合已装的内核 headers,通吃 linux/linux-cachyos,
-  预编译 nvidia-open 只绑 Arch 官方内核)。znver4 调查结论:CachyOS 官方源
-  (us.cachyos.org /repo/)已整体删除 znver4 树(404),x86_64/v3/v4 均正常,
-  全球 24 个镜像无一提供 znver4 —— v4 路线是唯一选择,--cachyos-repo znver4
-  实际已不可用(上游废弃,非镜像同步问题)
+  已知问题(已解决,见下条):官方 extra 已下架 nvidia 闭源包;当时误判
+  USTC/NJU 未同步 znver4(实际是 znver4 仓库在 x86_64_v4/ 路径下,已纠正)
+- 2026-07-29:gpu-nvidia 模块修复:闭源 nvidia 包已下架 → 按 distro 选预编译
+  包(arch 用 nvidia-open 绑官方 linux;cachyos 用仓库自带
+  $KERNEL_PKG-nvidia-open,按内核变体预编译,不用 DKMS)。znver4 纠正:
+  此前"全球删除/国内未同步"结论错误——znver4 仓库位于 x86_64_v4/ 路径
+  (wiki:znver4 与 v4 共用 mirrorlist;包 arch 标签同为 x86_64_v4),
+  USTC/NJU 均同步。cachyos.sh 修正:znver4 的 archdir=znver4 → x86_64_v4、
+  mirrorlist 包 cachyos-v3 → cachyos-v4;cachyos-mirrorlist.china 注释更正,
+  v4/znver4 共用该文件。tests 171 项全过
   新增 config/cachyos-mirrorlist.china(NJU/USTC 四行)+ MY_CACHYOS_CDN/
   MY_CACHYOS_MIRRORLIST 配置项;tests 171 项全过;shellcheck 无 error

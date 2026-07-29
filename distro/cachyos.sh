@@ -86,8 +86,9 @@ distro_setup_repos() {
         local archdir=""
         case $CACHYOS_REPO_LEVEL in
             v3) archdir=x86_64_v3 ;;
-            v4) archdir=x86_64_v4 ;;
-            znver4) archdir=znver4 ;;
+            # znver4 仓库(cachyos-znver4 等)位于 x86_64_v4/ 路径下、
+            # 包 arch 标签也是 x86_64_v4(实测;wiki:znver4 与 v4 共用 mirrorlist)
+            v4 | znver4) archdir=x86_64_v4 ;;
         esac
         if [[ -n $archdir ]] && grep -qF "$archdir" "$MY_CACHYOS_MIRRORLIST"; then
             grep -F "$archdir" "$MY_CACHYOS_MIRRORLIST" >"$MNT_DIR/etc/pacman.d/cachyos-mirrorlist-opt"
@@ -104,10 +105,11 @@ distro_setup_repos() {
     else
         chroot_run pacman -U --noconfirm "$(_cachyos_latest_pkg_url cachyos-mirrorlist)"
         case $CACHYOS_REPO_LEVEL in
-            v3 | znver4)
+            v3)
                 chroot_run pacman -U --noconfirm "$(_cachyos_latest_pkg_url cachyos-v3-mirrorlist)"
                 ml_level=/etc/pacman.d/cachyos-v3-mirrorlist ;;
-            v4)
+            # znver4 用 v4 mirrorlist(wiki 明示;其仓库在 x86_64_v4/ 路径下)
+            v4 | znver4)
                 chroot_run pacman -U --noconfirm "$(_cachyos_latest_pkg_url cachyos-v4-mirrorlist)"
                 ml_level=/etc/pacman.d/cachyos-v4-mirrorlist ;;
         esac
