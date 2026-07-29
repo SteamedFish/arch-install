@@ -155,8 +155,10 @@ EOF
 cleanup_target() {
     # 镜像最终清一次包缓存(配合 pacman_install 的每次 -Sc,防止镜像臃肿)
     if [[ ${TARGET_TYPE:-} == image && -d $MNT_DIR/usr/bin ]]; then
-        arch-chroot "$MNT_DIR" pacman -Scc --noconfirm 2>/dev/null || true
-        # 把已删除块 punch 回稀疏文件(否则 -Scc 清出的空间仍占宿主机磁盘)
+        # 原脚本 cleanup:rm -rf 整个缓存目录(比 -Scc 更彻底;
+        # 同时清掉 pacstrap 阶段及 download-* 残留)
+        rm -rf "${MNT_DIR}/var/cache/pacman/pkg"
+        # 把已删除块 punch 回稀疏文件(否则清出的空间仍占宿主机磁盘)
         fstrim "$MNT_DIR" 2>/dev/null || true
     fi
     if mountpoint -q "$MNT_DIR" 2>/dev/null; then

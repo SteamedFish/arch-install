@@ -152,6 +152,8 @@ main() {
     # 清空 machine-id:dd/克隆到多台机器会撞 ID(官方安装器同款处理,
     # arch/cachyos 通用);空文件被 systemd 视为未初始化,首启自动生成
     : >"$MNT_DIR/etc/machine-id"
+    # random-seed 同理:克隆会导致多台机器共用同一随机种子(原脚本同款清理)
+    rm -f "$MNT_DIR/var/lib/systemd/random-seed" "$MNT_DIR/efi/loader/random-seed"
 
     cleanup_target
     trap - EXIT

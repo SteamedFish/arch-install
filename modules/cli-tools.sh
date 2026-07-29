@@ -13,6 +13,8 @@ mod_install() {
         curl cscope cpufetch bat aria2 7zip \
         efibootmgr ripgrep ripgrep-all \
         arch-install-scripts bc bind direnv fd ipcalc lsscsi man-pages \
-        yt-dlp which trash-cli at vi bat-extras shfmt lesspipe yq prettier \
-        entr mtr zoxide atuin skim difftastic yazi starship inetutils
+         yt-dlp which trash-cli at vi bat-extras shfmt lesspipe yq prettier \
+         entr mtr zoxide atuin skim difftastic yazi starship inetutils
+    # 原脚本默认 enable atd(at 的守护进程,包在上面的列表里)
+    chroot_enable atd.service
 }

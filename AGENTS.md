@@ -115,3 +115,9 @@ docs/plans/           设计与计划文档
   官方调研备忘:chwd(硬件驱动自动检测)与 gpu-* 显式模块思路相反不吸收;
   官方 btrfs @/@home/... 多 subvol 布局、systemd hook mkinitcpio、
   zswap.enabled=0 内核参数均与本仓设计不同,不动。tests 171 项全过
+- 2026-07-29:对照原脚本全文补齐遗漏。清理:random-seed 两处
+  (/var/lib/systemd/ 与 /efi/loader/,克隆防撞)+ 镜像缓存 rm -rf 整个
+  /var/cache/pacman/pkg(原脚本同款,顺带清 pacstrap/download-* 残留);
+  配置:pacman.conf 补 UseSyslog;服务:cli-tools 补 enable atd.service。
+  其余逐项核对无缺失(mkinitcpio -P、efifs 驱动、loader entries、
+  enable 清单、bootstrap.sh 私活归 hooks)。tests 172 项全过

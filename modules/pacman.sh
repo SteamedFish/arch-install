@@ -5,6 +5,7 @@
 
 mod_install() {
     log "pacman.conf 调整"
+    chroot_run sed -i 's/^#UseSyslog/UseSyslog/' /etc/pacman.conf
     chroot_run sed -i 's/^#Color/Color/' /etc/pacman.conf
     chroot_run sed -i 's/^#VerbosePkgLists/VerbosePkgLists/' /etc/pacman.conf
     # multilib(wine/steam 等 32 位依赖需要)
