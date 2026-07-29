@@ -9,7 +9,15 @@ chroot_run() {
 # pacman_install [--asdeps] pkg...
 # 每次安装后清理旧版本缓存(pacman -Sc)——VM 镜像空间有限,见 plan 追加决策 3
 pacman_install() {
-    chroot_run pacman -S --needed --noconfirm "$@"
+    # 网络镜像偶有 10 秒无字节被 pacman 中止(实测 NJU/USTC 均出现),
+    # --needed 保证重试幂等;真实错误(如包不存在)重试 3 次后照旧失败
+    local try
+    for try in 1 2 3; do
+        chroot_run pacman -S --needed --noconfirm "$@" && break
+        [[ $try -lt 3 ]] || return 1
+        warn "pacman -S 失败(第 $try/3 次),5s 后重试"
+        sleep 5
+    done
     # 先删中断下载的 download-* 残留(文件或目录都有可能,实测均出现):
     # -Sc 会逐一读取缓存包校验,读到半截的临时文件报 Error reading fd 7
     # 并以非零退出
