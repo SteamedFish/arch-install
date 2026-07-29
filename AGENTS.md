@@ -89,5 +89,11 @@ docs/plans/           设计与计划文档
   10) dev-tools 移除 wakatime(官方仓库没有,仅 AUR wakatime-cli)
   已知问题:官方 extra 已下架 nvidia 闭源包(只剩 nvidia-open*),gpu-nvidia
   模块待改;USTC/NJU 均未同步 znver4 树(空目录),国内用 v4 仓库
+- 2026-07-29:gpu-nvidia 模块修复:nvidia → nvidia-open-dkms(官方仓库 2026-07
+  下架闭源 nvidia 包;DKMS 变体配合已装的内核 headers,通吃 linux/linux-cachyos,
+  预编译 nvidia-open 只绑 Arch 官方内核)。znver4 调查结论:CachyOS 官方源
+  (us.cachyos.org /repo/)已整体删除 znver4 树(404),x86_64/v3/v4 均正常,
+  全球 24 个镜像无一提供 znver4 —— v4 路线是唯一选择,--cachyos-repo znver4
+  实际已不可用(上游废弃,非镜像同步问题)
   新增 config/cachyos-mirrorlist.china(NJU/USTC 四行)+ MY_CACHYOS_CDN/
   MY_CACHYOS_MIRRORLIST 配置项;tests 171 项全过;shellcheck 无 error
