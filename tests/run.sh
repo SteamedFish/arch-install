@@ -135,6 +135,8 @@ check "atd 默认启用" "grep -q 'atd.service' modules/cli-tools.sh"
 check "镜像稀疏分配" "grep -q 'preallocation=off' lib/disk.sh"
 check "镜像清理时 fstrim" "grep -q 'fstrim' lib/disk.sh"
 check "config 模板含 MY_SWAP_SIZE" "grep -q MY_SWAP_SIZE config/config.example.sh"
+check "boot entry 支持 MY_KERNEL_PARAMS" "grep -q 'MY_KERNEL_PARAMS' lib/disk.sh"
+check "config 模板含 MY_KERNEL_PARAMS" "grep -q MY_KERNEL_PARAMS config/config.example.sh"
 check "server profile 默认 mem-zswap" "grep -q mem-zswap profiles/server.conf"
 check "desktop profile 默认 mem-zswap" "grep -q mem-zswap profiles/desktop.conf"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh

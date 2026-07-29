@@ -121,3 +121,11 @@ docs/plans/           设计与计划文档
   配置:pacman.conf 补 UseSyslog;服务:cli-tools 补 enable atd.service。
   其余逐项核对无缺失(mkinitcpio -P、efifs 驱动、loader entries、
   enable 清单、bootstrap.sh 私活归 hooks)。tests 172 项全过
+- 2026-07-29:MY_KERNEL_PARAMS 配置项(lib/disk.sh boot entry options 行尾
+  追加,空则不追加)。用途实例:AMD iGPU 跑 LLM 扩 GTT——amdgpu.gttsize 自
+  内核 6.13 已废弃(AMD 官方指明改用 ttm.pages_limit;前缀用 ttm. 不用
+  amdttm.;页数=GB×262144;built-in 模块只能走 cmdline,modprobe.d 无效)。
+  hx370 设 100% 内存=16777216 页(AI Max 395 实测 100% 可用;pages_limit 是
+  上限非预留,挤压时走回收/swap)。.gitignore 加 config/config.*.sh
+  (各目标机专用配置不提交;config.hx370.sh 曾被误提交已 amend 移除)。
+  tests 176 项全过

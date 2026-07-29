@@ -1,6 +1,8 @@
 # personal config (never commit)
 config/config.sh
 config/hooks.sh
+# 各目标机专用配置(含个人密钥/路径,同 config.sh 规则)
+config/config.*.sh
 
 # build artifacts
 *.img

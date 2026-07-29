@@ -33,6 +33,9 @@ MY_GPU_MODULES=""                 # 例 "gpu-amd" 或 "gpu-nvidia gpu-intel",自
 MY_NTP_SERVERS=""                 # 额外 NTP 服务器(空格分隔)
 MY_EXTRA_PACKAGES=""              # 追加包(不分模块的零散包,谨慎使用)
 MY_SWAP_SIZE="4G"                 # mem-zswap 后备 btrfs swapfile 大小;"0"=改用 zram(不建 swapfile)
+MY_KERNEL_PARAMS=""               # 追加内核参数,写到 boot entry options 行尾(空格分隔)。
+                                  # 例:AMD iGPU 跑 LLM 扩 GTT(勿用已废弃的 amdgpu.gttsize):
+                                  # "ttm.pages_limit=14680064 ttm.page_pool_size=14680064"(=56G,页数=GB×262144)
 
 # ---- CachyOS(仅 --distro cachyos)----
 MY_CACHYOS_MIRRORLIST=""          # 自有 cachyos mirrorlist 文件路径;空则装官方 cachyos-(v3/v4-)mirrorlist 包

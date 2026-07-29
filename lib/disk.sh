@@ -131,12 +131,15 @@ EOF
         name=arch; title="Arch Linux"
     fi
     mkdir -p "$MNT_DIR"/boot/loader/entries/
+    # MY_KERNEL_PARAMS:追加的自定义内核参数(如 ttm.pages_limit 调 GTT,见 config.example.sh)
+    local kparams=""
+    [[ -n ${MY_KERNEL_PARAMS:-} ]] && kparams=" $MY_KERNEL_PARAMS"
     cat >"$MNT_DIR"/boot/loader/entries/$name.conf <<EOF
 title   $title
 linux   /vmlinuz-$KERNEL_PKG
 $ucode_line
 initrd  /initramfs-$KERNEL_PKG.img
-options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw
+options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw$kparams
 EOF
     # fallback 条目只在对应 initramfs 存在时写:CachyOS 内核 preset 只有
     # default(实测无 initramfs-*-fallback.img,cachyos-hooks 包也不提供 preset),
@@ -147,7 +150,7 @@ title   $title (fallback initramfs)
 linux   /vmlinuz-$KERNEL_PKG
 $ucode_line
 initrd  /initramfs-$KERNEL_PKG-fallback.img
-options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw
+options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw$kparams
 EOF
     fi
 }
