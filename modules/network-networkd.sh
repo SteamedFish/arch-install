@@ -24,6 +24,14 @@ Type=ether
 [Network]
 DHCP=yes
 EOF
+    # 多网口机器只插一根线时,未接线的口永远 no-carrier/configuring,
+    # wait-online 默认等全部 managed 口会 2 分钟超时失败(hx370 eth0/eth1 实测);
+    # --any 改为任一口 routable 即成功
+    chroot_write_file /etc/systemd/system/systemd-networkd-wait-online.service.d/any.conf <<'EOF'
+[Service]
+ExecStart=
+ExecStart=/usr/lib/systemd/systemd-networkd-wait-online --any
+EOF
     chroot_enable systemd-networkd.service
     chroot_run systemctl disable systemd-resolved.service
 }

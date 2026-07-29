@@ -150,6 +150,9 @@ check "gpgpu intel 用 NEO" "grep -q 'intel-compute-runtime' modules/gpgpu.sh"
 check "gpgpu 空值 skip" "grep -q 'return 0' modules/gpgpu.sh"
 check "gpgpu 不进 profiles" "! grep -rq gpgpu profiles/"
 check "config 模板含 MY_GPGPU" "grep -q MY_GPGPU config/config.example.sh"
+check "根挂载带 x-systemd.growfs" "grep -q x-systemd.growfs lib/disk.sh"
+check "wait-online 改 --any" "grep -q -- --any modules/network-networkd.sh"
+check "ESP 挂载 fmask=0077" "grep -q fmask=0077 lib/disk.sh"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo

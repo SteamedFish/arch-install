@@ -156,3 +156,15 @@ docs/plans/           设计与计划文档
   machine-id 首启生成。教训:qemu 读镜像前必须确认构建进程已退出
   (中途 boot 必失败回 OVMF 菜单);pkill -f 的模式会匹配自身命令行
   (用 [x] 括号 trick 防自杀)。tests 186 项全过
+- 2026-07-29:hx370 真机 dd 后实测修复三则:
+  1) repart 只扩分区不扩 btrfs 文件系统(首启日志有 Partition table written
+     但无 fs grow 行;第二启分区 930G/fs 75G 时报 No changes,证实它不把
+     "分区>fs"视为待办)→ growfs 模块加 systemd-growfs-root.service
+     (btrfs filesystem resize max /,改走 fstab x-systemd.growfs 选项(generator 实例模板自带 After=systemd-repart.service))
+  2) 多网口只插一根线时未接线口永远 no-carrier,wait-online 默认等全部
+     managed 口 2 分钟超时失败 → network-networkd 加 drop-in 改 --any
+  3) ESP 默认 fmask=0022,bootctl 报 random-seed world accessible 安全警告
+     → mount_target 挂 /efi 加 fmask=0077,dmask=0077(genfstab 会记录进
+     fstab;systemd 官方建议 ESP root-only)
+  真机(192.168.15.216)已同步部署验证:根 931G、failed 空、ttm 16777216
+  生效、11 项关键服务 active。tests 189 项全过
