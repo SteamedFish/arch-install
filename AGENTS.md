@@ -39,7 +39,7 @@ docs/plans/           设计与计划文档
 - [x] 全部模块(24 个)
 - [x] profiles + config 模板
 - [x] README × 2
-- [ ] 镜像端到端 qemu 验证(需手动:构建镜像 → OVMF 启动 → 检查扩容/服务)
+- [x] 镜像端到端 qemu 验证(OVMF+NVMe 仿真,SSH 全链路实测通过)
 - [ ] anything-sync-daemon(原脚本 TODO,待定)
 
 ## CHANGELOG
@@ -139,3 +139,20 @@ docs/plans/           设计与计划文档
   同 gpu-intel);与 gpu-* 驱动模块独立不 mod_requires(headless/容器场景
   驱动可来自别处);CachyOS 同步 extra 包名一致无 distro 分支。
   tests 185 项全过,shellcheck 无 error
+- 2026-07-29:镜像端到端 qemu 实证(qemu-full+edk2-ovmf;OVMF.4m.fd 在
+  /usr/share/edk2/x64/ 不是 ovmf/;-enable-kvm + NVMe 仿真——initramfs
+  autodetect 只含宿主硬件模块,IDE/virtio_blk 会找不到根;-vga none 让
+  OVMF/sd-boot 控制台回落串口;user-mode net hostfwd 2222→32200)。
+  抓到并修复两个必现 bug:
+  1) modules/ssh.sh 补 chroot_enable sshdgenkeys.service——sshd.service 只有
+     After=sshdgenkeys(仅排序不拉入),不 enable 首启无 host key 必失败;
+     刻意不在安装时烘 key(dd/克隆多机 host key 会全相同)
+  2) growfs 的 repart Type=linux-root 非法(Failed to parse partition type),
+     改 DPS 别名 root——此前"repart 静态启用"只是静态检查,growfs 从未
+     真正工作过
+  复验(build19 + qemu -snapshot 保镜像 pristine):failed units 空、repart
+  Partition table written、根扩到 75G、host key 首启 4 枚、zswap
+  Y/zstd/20、swapfile 64G 无 zram、cmdline ttm 参数生效、atd enabled、
+  machine-id 首启生成。教训:qemu 读镜像前必须确认构建进程已退出
+  (中途 boot 必失败回 OVMF 菜单);pkill -f 的模式会匹配自身命令行
+  (用 [x] 括号 trick 防自杀)。tests 186 项全过
