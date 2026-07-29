@@ -60,7 +60,7 @@ docs/plans/           设计文档与执行计划
 网络:      network-networkd(server)/ network-nm(desktop)
 工具:      cli-tools dev-tools docker virt
 桌面:      audio fonts ime bluetooth desktop-niri desktop-kde gui-apps gaming
-显卡(可选): gpu-amd gpu-nvidia gpu-intel
+显卡(可选): gpu-amd gpu-nvidia gpu-intel gpgpu(OpenCL/ROCm/CUDA,`MY_GPGPU` 选 vendor)
 ```
 
 `[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。

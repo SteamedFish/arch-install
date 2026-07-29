@@ -129,3 +129,13 @@ docs/plans/           设计与计划文档
   上限非预留,挤压时走回收/swap)。.gitignore 加 config/config.*.sh
   (各目标机专用配置不提交;config.hx370.sh 曾被误提交已 amend 移除)。
   tests 176 项全过
+- 2026-07-29:新增 modules/gpgpu.sh(可选,不进 profiles;参考 Arch Wiki
+  GPGPU 页)。MY_GPGPU=amd|nvidia|intel,空=skip,无效=die;--extra-modules
+  gpgpu 启用。公共包 ocl-icd+clinfo+opencl-headers;amd=rocm-opencl-runtime+
+  rocm-hip-runtime+hip-runtime-amd(LLM 用 HIP;Polaris 及更老需
+  ROC_ENABLE_PRE_VEGA=1 自加 environment.d);nvidia=opencl-nvidia+cuda 完整
+  toolkit(数 GB);intel=intel-compute-runtime(NEO,Gen12+/独显;Gen8/9/11
+  老核显自行用 AUR legacy,不管)。不装虚拟包 opencl-driver(字母序坑,
+  同 gpu-intel);与 gpu-* 驱动模块独立不 mod_requires(headless/容器场景
+  驱动可来自别处);CachyOS 同步 extra 包名一致无 distro 分支。
+  tests 185 项全过,shellcheck 无 error

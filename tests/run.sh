@@ -139,6 +139,16 @@ check "boot entry 支持 MY_KERNEL_PARAMS" "grep -q 'MY_KERNEL_PARAMS' lib/disk.
 check "config 模板含 MY_KERNEL_PARAMS" "grep -q MY_KERNEL_PARAMS config/config.example.sh"
 check "server profile 默认 mem-zswap" "grep -q mem-zswap profiles/server.conf"
 check "desktop profile 默认 mem-zswap" "grep -q mem-zswap profiles/desktop.conf"
+
+# ---- 10. GPGPU 模块断言 ----
+check "gpgpu 读 MY_GPGPU" "grep -q MY_GPGPU modules/gpgpu.sh"
+check "gpgpu 公共包装 ocl-icd+clinfo" "grep -q 'ocl-icd clinfo opencl-headers' modules/gpgpu.sh"
+check "gpgpu amd 用 ROCm" "grep -q 'rocm-opencl-runtime rocm-hip-runtime hip-runtime-amd' modules/gpgpu.sh"
+check "gpgpu nvidia 用 cuda" "grep -q 'opencl-nvidia cuda' modules/gpgpu.sh"
+check "gpgpu intel 用 NEO" "grep -q 'intel-compute-runtime' modules/gpgpu.sh"
+check "gpgpu 空值 skip" "grep -q 'return 0' modules/gpgpu.sh"
+check "gpgpu 不进 profiles" "! grep -rq gpgpu profiles/"
+check "config 模板含 MY_GPGPU" "grep -q MY_GPGPU config/config.example.sh"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo

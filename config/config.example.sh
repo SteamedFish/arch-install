@@ -28,6 +28,9 @@ MY_DOTFILES_REPO=""               # 例 git@github.com:You/dotfiles.git 或 http
 # ---- 桌面 ----
 MY_GREETER_AUTOLOGIN=0            # 1=autologin(仅家中台式机;笔记本必须 0)
 MY_GPU_MODULES=""                 # 例 "gpu-amd" 或 "gpu-nvidia gpu-intel",自动加入 extra-modules
+MY_GPGPU=""                       # GPGPU 计算栈:amd|nvidia|intel,需配合 --extra-modules gpgpu;
+                                  # 空=不装。amd=ROCm(OpenCL+HIP),nvidia=OpenCL+CUDA toolkit,
+                                  # intel=NEO OpenCL/Level Zero。均含 ocl-icd+clinfo+opencl-headers
 
 # ---- 可选个性化 ----
 MY_NTP_SERVERS=""                 # 额外 NTP 服务器(空格分隔)
