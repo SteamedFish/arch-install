@@ -40,6 +40,7 @@ docs/plans/           设计与计划文档
 - [x] profiles + config 模板
 - [x] README × 2
 - [x] 镜像端到端 qemu 验证(OVMF+NVMe 仿真,SSH 全链路实测通过)
+- [x] 默认启用 auditd.service(2026-07-31)
 - [ ] anything-sync-daemon(原脚本 TODO,待定)
 
 ## CHANGELOG
@@ -156,6 +157,17 @@ docs/plans/           设计与计划文档
   machine-id 首启生成。教训:qemu 读镜像前必须确认构建进程已退出
   (中途 boot 必失败回 OVMF 菜单);pkill -f 的模式会匹配自身命令行
   (用 [x] 括号 trick 防自杀)。tests 186 项全过
+- 2026-07-31:默认启用 auditd.service。`modules/auditd.sh` 装 `audit` 包 +
+  `chroot_enable auditd.service`,装包与 enable 在同一模块内(符合"装包/enable
+  必须同模块"硬约定),不写规则、不装 audispd-plugins、不配转发;`profiles/
+  server.conf` 与 `profiles/desktop.conf` 各加入 `auditd` 模块。决策依据:
+  `audit-in-dmesg.md` 2026-07-31 本机实测,auditd 取得 kernel audit listener
+  (PID 1310716)后,新增 audit 事件不再持续走 kernel printk,`audit.log` 落盘
+  正常;在无 rules 状态下 auditd 仍接收 PAM/daemon startup 等事件。该改动改写
+  了所有 profile 装出来的机器的安全姿态:会写 `/var/log/audit/audit.log`、
+  监听 syscall,需要个性化规则/容量/轮转/failure 策略时请另写配置或
+  `--skip-modules auditd` 关闭。`audit-in-dmesg.md` 留作风险审阅文档,未跟踪、
+  不进本次 commit。
 - 2026-07-29:hx370 真机 dd 后实测修复三则:
   1) repart 只扩分区不扩 btrfs 文件系统(首启日志有 Partition table written
      但无 fs grow 行;第二启分区 930G/fs 75G 时报 No changes,证实它不把
