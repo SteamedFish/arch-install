@@ -11,6 +11,7 @@
 - **双目标**:raw 磁盘镜像(自动 losetup)或物理盘(自动识别,整盘抹掉,交互确认 + `--force` + 占用预检)
 - **模块化**:每功能一个 `modules/*.sh`,声明 requires/conflicts/before,解析器自动闭包 + 拓扑排序
 - **预设**:`server` / `desktop`(niri 或 KDE);VPS = server + `--skip-modules hardware`;`--extra-modules` / `--skip-modules` 任意增减
+- **设备预设**:`--device NAME` 加载 `devices/NAME.sh`(gitignored,`devices/example.sh` 为 tracked 模板),固化单台设备的 CLI 默认值(`--distro`、`--cputype`、内核变体、`--extra-modules` 等)与 `MY_*` 覆盖。叠加顺序:内置默认 → `config.sh` → 设备文件 → CLI 显式参数。`TARGET`/`--force`/`--dry-run` 不可固化;`--profile` 约定每次显式传
 - **mirrorlist 四来源**:copy 宿主机 / 官方默认 / reflector 生成 / config 文件。文件名始终与官方包一致(`mirrorlist`、`archcn-mirrorlist`、`cachyos-mirrorlist`),随时可切回包管理;`original` 模式直接安装官方包
 - **首启自动扩容**:systemd-repart,GPT 分区与 btrfs 文件系统都扩到最大
 - **内存选项**:默认 `mem-zswap`(tmpfiles.d 纯配置文件 + btrfs NOCOW swapfile 后备,`MY_SWAP_SIZE` 默认 4G;`0` 退回 zram);可选 `mem-zram`(zram-generator);不想要任何 swap 就删掉该模块——两者互斥
@@ -26,6 +27,7 @@ sudo ./arch-install --target system.img --size 15G --profile desktop --desktop n
 sudo ./arch-install --target /dev/sda --profile server --force
 sudo ./arch-install --target vps.img --profile server --skip-modules hardware
 sudo ./arch-install --target cachy.img --distro cachyos --cachyos-kernel bore
+sudo ./arch-install --device hx370 --target /dev/nvme0n1 --profile desktop   # 设备预设:参数固化在 devices/hx370.sh
 ./arch-install --target x.img --profile desktop --dry-run   # 预览,不需 root
 ./arch-install --modules   # 列出全部模块、依赖与顺序约束
 ```
@@ -48,6 +50,8 @@ modules/              功能模块(接口见下)
 profiles/             server.conf / desktop.conf(MODULES 预设)
 config/               config.example.sh + hooks.example.sh(tracked 模板);
                       config.sh + hooks.sh(gitignored,你的个人配置)
+devices/              example.sh(tracked 模板);NAME.sh 设备预设
+                      (gitignored,`--device NAME` 加载)
 tests/run.sh          纯 bash 自测(语法、模块契约、硬约定、解析器单测、dry-run)
 docs/plans/           设计文档与执行计划
 ```

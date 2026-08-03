@@ -11,6 +11,7 @@ Refactored from a single-file script: everything belonging to one feature (packa
 - **Two targets**: raw disk image (auto losetup) or physical drive (auto-detected, full wipe, interactive confirm + `--force` + in-use pre-check)
 - **Modular**: one `modules/*.sh` per feature; modules declare requires/conflicts/before; the resolver computes the closure and topo-sorts
 - **Profiles**: `server` / `desktop` (niri or KDE); VPS = server + `--skip-modules hardware`; `--extra-modules` / `--skip-modules` for arbitrary tweaks
+- **Device presets**: `--device NAME` loads `devices/NAME.sh` (gitignored; `devices/example.sh` is the tracked template) to pin per-device CLI defaults (`--distro`, `--cputype`, kernel variant, `--extra-modules`, …) and `MY_*` overrides. Precedence: built-in defaults → `config.sh` → device file → explicit CLI flags. `TARGET`/`--force`/`--dry-run` cannot be pinned; `--profile` is passed explicitly on every run by convention
 - **Mirrorlist, four sources**: copy from host / upstream default / reflector-generated / config file. Filenames always match the official packages (`mirrorlist`, `archcn-mirrorlist`, `cachyos-mirrorlist`) so you can switch back to package-managed lists anytime; in `original` mode the packages themselves are installed
 - **Root auto-grow at first boot**: systemd-repart expands both the GPT partition and the btrfs filesystem
 - **Memory options**: default `mem-zswap` (tmpfiles.d config + btrfs NOCOW swapfile backing, `MY_SWAP_SIZE` default 4G; `0` falls back to zram); `mem-zram` (zram-generator) as alternative; remove the module for no swap at all — the two are mutually exclusive
@@ -26,6 +27,7 @@ sudo ./arch-install --target system.img --size 15G --profile desktop --desktop n
 sudo ./arch-install --target /dev/sda --profile server --force
 sudo ./arch-install --target vps.img --profile server --skip-modules hardware
 sudo ./arch-install --target cachy.img --distro cachyos --cachyos-kernel bore
+sudo ./arch-install --device hx370 --target /dev/nvme0n1 --profile desktop   # device preset: pinned flags from devices/hx370.sh
 ./arch-install --target x.img --profile desktop --dry-run   # preview, no root needed
 ./arch-install --modules   # list all modules, deps and ordering constraints
 ```
@@ -48,6 +50,8 @@ modules/              feature modules (interface below)
 profiles/             server.conf / desktop.conf (MODULES presets)
 config/               config.example.sh + hooks.example.sh (tracked templates);
                       config.sh + hooks.sh (gitignored, your personal config)
+devices/              example.sh (tracked template); NAME.sh per-device presets
+                      (gitignored, loaded via `--device NAME`)
 tests/run.sh          pure-bash self tests (syntax, module contract, conventions, resolver unit tests, dry-run)
 docs/plans/           design doc and execution plan (Chinese)
 ```

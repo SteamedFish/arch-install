@@ -20,6 +20,9 @@ config/config.example.sh  tracked 模板(全部 MY_* 变量)
 config/config.sh      gitignored 用户配置
 config/hooks.example.sh   tracked 钩子模板
 config/hooks.sh       gitignored 私活逻辑
+devices/example.sh    tracked 设备模板;devices/*.sh gitignored(--device NAME
+                      固化设备级 CLI 默认值与 MY_* 变量,
+                      叠加:内置默认→config.sh→设备文件→CLI)
 tests/run.sh          纯 bash 测试(无外部依赖)
 docs/plans/           设计与计划文档
 ```
@@ -180,3 +183,14 @@ docs/plans/           设计与计划文档
      fstab;systemd 官方建议 ESP root-only)
   真机(192.168.15.216)已同步部署验证:根 931G、failed 空、ttm 16777216
   生效、11 项关键服务 active。tests 189 项全过
+- 2026-08-03:新增 `--device NAME` 设备预设。动机:多台固定硬件设备(hx370
+  等)各有固定参数(cputype/distro/内核变体/gpu 模块/MY_KERNEL_PARAMS 的
+  ttm GTT 值),此前只能"半个 config 文件 + 记一堆 CLI 参数"。实现:
+  prescan_args 先提取 --device/--config(--modules/-h 的提前 exit 一并移入,
+  否则 parse_args 后移会让无 config.sh 时 --modules 回归误报缺配置);
+  load_device 在 config.sh 之后、parse_args 之前 source devices/NAME.sh
+  (NAME 限 [a-z0-9-] 防路径穿越,缺失时 die 并列出可用设备)。叠加顺序:
+  内置默认 → config.sh → devices/X.sh → CLI 显式参数。TARGET/FORCE/DRY_RUN
+  不可固化;PROFILE 约定每次显式传;--extra/--skip-modules 对设备默认是
+  覆盖非追加。devices/*.sh gitignored,模板 devices/example.sh tracked。
+  tests 202 项全过(新增 13 项),shellcheck 无 error
