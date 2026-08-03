@@ -16,7 +16,7 @@ source "$SCRIPT_DIR/lib/modules.sh"
 # ---- 默认值 ----
 TARGET="" SIZE="32G" PROFILE="server" DISTRO="arch" DESKTOP="niri"
 CACHYOS_KERNEL="default" CACHYOS_REPO="auto" CPUTYPE="auto" MIRRORLIST="copy"
-EXTRA_MODULES="" SKIP_MODULES="" DRY_RUN=0 FORCE=0
+EXTRA_MODULES="" SKIP_MODULES="" DRY_RUN=0 FORCE=0 DEVICE=""
 CONFIG_FILE="$SCRIPT_DIR/config/config.sh"
 
 usage() {
@@ -41,10 +41,29 @@ usage() {
   --modules              列出全部模块名、依赖与顺序约束
   --skip-modules a,b     跳过模块(VPS: --skip-modules hardware)
   --config FILE          指定 config.sh 路径
+  --device NAME          设备预设(devices/NAME.sh,gitignored;固化 CLI 默认值
+                          与 MY_* 变量,CLI 显式参数优先;模板见 devices/example.sh)
   --dry-run              只打印计划不执行
   --force                跳过物理盘确认
   -h, --help
 EOF
+}
+
+# prescan_args:正式解析前只提取 --device 与 --config(设备文件需在 config.sh
+# 之后、parse_args 之前 source,才能既覆盖 MY_* 又充当 CLI 默认值)。
+# --modules/-h 在此提前 exit:它们原本在 parse_args 里先于 load_config 退出,
+# parse_args 后移后若不在此处理,无 config.sh 时 --modules 会误报缺配置(回归)
+prescan_args() {
+    while (($#)); do
+        case $1 in
+            --device) DEVICE=$2; shift 2 ;;
+            --config) CONFIG_FILE=$2; shift 2 ;;
+            --modules) print_modules; exit 0 ;;
+            -h|--help) usage; exit 0 ;;
+            --target|--size|--profile|--distro|--desktop|--cachyos-kernel|--cachyos-repo|--cputype|--mirrorlist|--extra-modules|--skip-modules) shift 2 ;;
+            *) shift ;;
+        esac
+    done
 }
 
 parse_args() {
@@ -62,6 +81,7 @@ parse_args() {
             --extra-modules) EXTRA_MODULES=$2; shift 2 ;;
             --skip-modules) SKIP_MODULES=$2; shift 2 ;;
             --config) CONFIG_FILE=$2; shift 2 ;;
+            --device) DEVICE=$2; shift 2 ;;   # prescan 已取值,此处仅消费
             --modules) print_modules; exit 0 ;;
             --dry-run) DRY_RUN=1; shift ;;
             --force) FORCE=1; shift ;;
@@ -91,9 +111,27 @@ load_config() {
     fi
 }
 
+# load_device:source devices/$DEVICE.sh,固化设备级 CLI 默认值与 MY_* 变量。
+# 叠加顺序:内置默认值 → config.sh → devices/X.sh → CLI 显式参数(后者覆盖前者)
+load_device() {
+    [[ -z $DEVICE ]] && return 0
+    # 设备名只允许小写字母/数字/连字符:防 ../ 路径穿越
+    [[ $DEVICE =~ ^[a-z0-9][a-z0-9-]*$ ]] || die "非法设备名: $DEVICE(只允许小写字母/数字/连字符)"
+    local f="$SCRIPT_DIR/devices/$DEVICE.sh"
+    if [[ ! -f $f ]]; then
+        local avail
+        avail=$(find "$SCRIPT_DIR/devices" -maxdepth 1 -name '*.sh' ! -name 'example.sh' \
+            -printf '%f\n' 2>/dev/null | sed 's/\.sh$//' | sort | tr '\n' ' ')
+        die "缺少 $f —— 可用设备: ${avail:-无}(模板见 devices/example.sh)"
+    fi
+    # shellcheck source=/dev/null
+    source "$f"
+}
+
 print_plan() {
     cat <<EOF
 == 安装计划 ==
+$([[ -n $DEVICE ]] && echo "设备:      $DEVICE")
 目标:      $TARGET($TARGET_TYPE)
 $([[ $TARGET_TYPE == image ]] && echo "镜像大小:  $SIZE")
 发行版:    $DISTRO$([[ $DISTRO == cachyos ]] && echo "(kernel=$CACHYOS_KERNEL repo=$CACHYOS_REPO)")
@@ -105,10 +143,14 @@ EOF
 }
 
 main() {
-    parse_args "$@"
+    # prescan 先提取 --device/--config:设备文件要在 config.sh 之后、
+    # parse_args 之前 source,才能既覆盖 MY_* 又充当 CLI 默认值
+    prescan_args "$@"
     check_deps pacstrap arch-chroot sfdisk mkfs.vfat mkfs.ext4 mkfs.btrfs \
         losetup bootctl genfstab curl rsync
     load_config
+    load_device         # 叠加顺序:内置默认 → config.sh → devices/X.sh → CLI
+    parse_args "$@"
     # shellcheck source=/dev/null
     source "$SCRIPT_DIR/distro/$DISTRO.sh"
 
