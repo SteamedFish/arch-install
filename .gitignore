@@ -3,6 +3,9 @@ config/config.sh
 config/hooks.sh
 # 各目标机专用配置(含个人密钥/路径,同 config.sh 规则)
 config/config.*.sh
+# 设备预设(含个人参数,同 config.sh 规则;example.sh 为 tracked 模板)
+devices/*.sh
+!devices/example.sh
 
 # build artifacts
 *.img
