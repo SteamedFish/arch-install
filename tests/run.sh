@@ -153,6 +153,33 @@ check "config 模板含 MY_GPGPU" "grep -q MY_GPGPU config/config.example.sh"
 check "根挂载带 x-systemd.growfs" "grep -q x-systemd.growfs lib/disk.sh"
 check "wait-online 改 --any" "grep -q -- --any modules/network-networkd.sh"
 check "ESP 挂载 fmask=0077" "grep -q fmask=0077 lib/disk.sh"
+
+# ---- 11. 设备 profile(--device)----
+# 临时设备文件(devices/*.sh 已 gitignore,测试后删除,不污染仓库)
+mkdir -p devices
+cat >devices/testdev.sh <<'EOF'
+DISTRO=cachyos
+CPUTYPE=amd
+EXTRA_MODULES=gpgpu
+MY_HOSTNAME=testdev-host
+EOF
+device_out=$(./arch-install --target /tmp/x.img --device testdev --dry-run 2>/dev/null)
+check "print_plan 显示设备名" "grep -q '设备:      testdev' <<<'$device_out'"
+check "--device 固化 distro 生效" "grep -q '发行版:    cachyos' <<<'$device_out'"
+check "--device 固化 cputype 生效" "grep -q '微码:      amd' <<<'$device_out'"
+check "--device 固化 extra-modules 生效" "grep -qw gpgpu <<<'$device_out'"
+cli_over=$(./arch-install --target /tmp/x.img --device testdev --distro arch --dry-run 2>/dev/null)
+check "CLI 覆盖设备默认(--distro arch)" "grep -q '发行版:    arch' <<<'$cli_over'"
+check "不存在的设备 die" "! ./arch-install --target /tmp/x.img --device nonexist-dev --dry-run >/dev/null 2>&1"
+check "非法设备名 die" "! ./arch-install --target /tmp/x.img --device ../etc --dry-run >/dev/null 2>&1"
+rm -f devices/testdev.sh
+# 叠加顺序断言:main 内 prescan→load_config→load_device→parse_args(函数定义在行首,调用有缩进)
+call_order=$(grep -nE '^    (prescan_args|load_config|load_device|parse_args)\b' arch-install | sed 's/^[0-9]*: *//' | cut -d' ' -f1 | paste -sd,)
+check "叠加顺序 prescan→config→device→parse" "grep -q 'prescan_args,load_config,load_device,parse_args' <<<'$call_order'"
+check "--modules 提前 exit 保留在 prescan" "grep -A5 '^prescan_args()' arch-install | grep -q -- '--modules'"
+check "模板 devices/example.sh tracked 例外" "[[ -f devices/example.sh ]] && grep -q '!devices/example.sh' .gitignore"
+check "gitignore 忽略 devices/*.sh" "grep -q 'devices/\*.sh' .gitignore"
+check "usage 含 --device" "./arch-install --help 2>/dev/null | grep -q -- '--device'"
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
