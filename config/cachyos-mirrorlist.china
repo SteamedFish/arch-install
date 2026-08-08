@@ -1,8 +1,20 @@
 # CachyOS 国内镜像(NJU 主、USTC 备;cdn77 在本网络被重置)。
-# 优化段在 x86_64_v4/ 下,[cachyos] 段在 x86_64/ 下;pacman 按 $repo
-# 展开段名,404 自动回落下一行。v4 与 znver4 共用本文件:znver4 仓库
-# (cachyos-znver4 等)同样位于 x86_64_v4/ 路径下(2026-07-29 实测 USTC/NJU
-# 均同步,wiki 也注明 znver4 用 v4 mirrorlist)。
+# 优化段在 x86_64_v3/ 或 x86_64_v4/ 下(按 build 目标 CPU 选),[cachyos] 段
+# 在 x86_64/ 下;pacman 按 $repo 展开段名,404 自动回落下一行。
+#
+# v3 / v4 / znver4 共用本文件:
+#   - v3:Zen+ / Zen 2 / Zen 3(无 AVX-512),2700X 等老 AMD CPU
+#   - v4:Zen 4+(有 AVX-512),7700X/9700X 等
+#   - znver4:Zen 4 专属 GCC 调优仓库,与 v4 共用 x86_64_v4/ 路径(2026-07-29
+#           实测 USTC/NJU 均同步;wiki 也注明 znver4 用 v4 mirrorlist)
+#
+# cachyos.sh 的 mirrorlist 拆分逻辑(arch-install/lib):
+#   对 v3 段:grep x86_64_v3 → 优化路径 mirrorlist
+#           grep -v x86_64_v3 -e x86_64_v4 → x86_64 基础路径 mirrorlist
+#   对 v4/znver4 段:同上但 v3/v4 互换。其他级别的路径行会被丢弃,
+#   所以三个级别共用同一文件是安全的。
+Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64_v3/$repo
+Server = https://mirrors.ustc.edu.cn/cachyos/repo/x86_64_v3/$repo
 Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64_v4/$repo
 Server = https://mirrors.ustc.edu.cn/cachyos/repo/x86_64_v4/$repo
 Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64/$repo
