@@ -120,6 +120,12 @@ check "ananicy-cpp 仅 cachyos" "grep -q 'DISTRO == cachyos' modules/gaming.sh"
 check "archcn 包接管镜像列表" "grep -q archcn-mirrorlist-git modules/pacman.sh"
 check "original 用 pacman-mirrorlist 包" "grep -q 'pacman_install pacman-mirrorlist' modules/pacman.sh"
 
+# ---- 8b. multilib 由 distro_setup_repos 启用(不依赖 pacman 模块)----
+check "arch distro_setup_repos 启用 multilib" "grep -q 'multilib' distro/arch.sh"
+check "cachyos distro_setup_repos 启用 multilib" "grep -q 'multilib' distro/cachyos.sh"
+check "pacman 模块不再 uncomment multilib 段(已下放 distro)" \
+    "! grep -q 's/^#\\[multilib\\]' modules/pacman.sh"
+
 # ---- 9. 内存选项断言 ----
 check "mem-zram 与 mem-zswap 互斥" "grep -q 'echo mem-zswap' modules/mem-zram.sh"
 check "mem-zswap 与 mem-zram 互斥" "grep -q 'echo mem-zram' modules/mem-zswap.sh"

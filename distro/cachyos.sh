@@ -59,6 +59,11 @@ _cachyos_detect_level() {
 }
 
 distro_setup_repos() {
+    # 启用 multilib(wine/steam 等 32 位依赖;与 arch.sh 同款,与 cachyos 仓库
+    # 配置顺序无关——[multilib] 在 [core] 之后,后置插入不会影响)。此处无条件
+    # 启用,不依赖 pacman 模块是否加载。原 pacman 模块里的同名 sed 已下放。
+    sed -i '/^#\[multilib\]/ { s/^#//; n; /^#Include/ s/^#// }' "$MNT_DIR/etc/pacman.conf"
+
     _cachyos_detect_level
     log "CachyOS 仓库优化等级: $CACHYOS_REPO_LEVEL"
 

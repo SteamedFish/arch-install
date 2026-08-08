@@ -194,3 +194,13 @@ docs/plans/           设计与计划文档
   不可固化;PROFILE 约定每次显式传;--extra/--skip-modules 对设备默认是
   覆盖非追加。devices/*.sh gitignored,模板 devices/example.sh tracked。
   tests 202 项全过(新增 13 项),shellcheck 无 error
+- 2026-08-08:multilib 由 distro_setup_repos 启用(arch.sh + cachyos.sh)。
+  原在 modules/pacman.sh 启用,意味着 --skip-modules pacman 时 multilib
+  仍处于注释状态(默认 pacman.conf 出厂即注释),wine/steam 等 32 位依赖
+  装不了,gaming 的 mod_requires pacman 只是兜底关联,其他用到 32 位包
+  的场景(用户自加模块)也漏。下放到 distro_setup_repos:arch.sh 由原
+  no-op 改为 uncomment `[multilib]`+`Include`;cachyos.sh 在
+  `_cachyos_detect_level` 之前同款 sed([multilib] 在 [core] 之后,
+  后置插入的 cachyos-* 段不影响)。modules/pacman.sh 删原 sed,留一行
+  注释指向 distro。tests 210 项全过(新增 3 项:两 distro 各 +1、
+  pacman 模块不再含 uncomment 模式的反向断言),shellcheck 无 error

@@ -8,8 +8,8 @@ mod_install() {
     chroot_run sed -i 's/^#UseSyslog/UseSyslog/' /etc/pacman.conf
     chroot_run sed -i 's/^#Color/Color/' /etc/pacman.conf
     chroot_run sed -i 's/^#VerbosePkgLists/VerbosePkgLists/' /etc/pacman.conf
-    # multilib(wine/steam 等 32 位依赖需要)
-    chroot_run sed -i '/^#\[multilib\]/ { s/^#//; n; /^#Include/ s/^#// }' /etc/pacman.conf
+    # multilib 由 distro_setup_repos 启用(arch.sh + cachyos.sh 各做一次,
+    # 无条件,不依赖本模块是否加载)
 
     log "mirrorlist: $MIRRORLIST"
     # 文件名始终与官方包一致(pacman-mirrorlist→mirrorlist、archcn-mirrorlist-git→archcn-mirrorlist),

@@ -8,8 +8,10 @@ distro_base_packages() {
 }
 
 distro_setup_repos() {
-    # pacman.conf 调整、archlinuxcn 等统一由 pacman 模块负责
-    :
+    # 启用 multilib(wine/steam 等 32 位依赖需要;此处无条件启用,
+    # 不依赖 pacman 模块是否加载——gaming 之外用到 32 位包的场景
+    # 也都能用)。原 pacman 模块里的同名 sed 已下放,见 commit message。
+    sed -i '/^#\[multilib\]/ { s/^#//; n; /^#Include/ s/^#// }' "$MNT_DIR/etc/pacman.conf"
 }
 
 distro_kernel_packages() {

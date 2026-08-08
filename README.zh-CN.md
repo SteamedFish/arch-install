@@ -67,7 +67,7 @@ docs/plans/           设计文档与执行计划
 显卡(可选): gpu-amd gpu-nvidia gpu-intel gpgpu(OpenCL/ROCm/CUDA,`MY_GPGPU` 选 vendor)
 ```
 
-`[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。
+`[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。`[multilib]` 由 `distro_setup_repos` 无条件启用(Arch 与 CachyOS 均在 distro_setup_repos 内 uncomment),即使 `--skip-modules pacman` 也能保留 wine/steam 等 32 位依赖。
 
 ## 模块接口
 
