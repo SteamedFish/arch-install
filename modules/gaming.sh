@@ -16,8 +16,11 @@ mod_install() {
 
     if [[ $DISTRO == cachyos ]]; then
         pacman_install ananicy-cpp
+        # CachyOS 官方游戏元包:applications 拉常用工具(反作弊/Gamemode 客户端等),
+        # meta 拉 Steam/Lutris/Heroic 等启动器。Arch 上无对应仓库路径,仅在此安装。
+        pacman_install cachyos-gaming-applications cachyos-gaming-meta
         chroot_enable ananicy-cpp.service
     else
-        log "跳过 ananicy-cpp(仅 CachyOS 启用;Arch 上该服务有问题)"
+        log "跳过 ananicy-cpp 与 cachyos-gaming-*(仅 CachyOS 启用;Arch 上该服务有问题,且仓库无对应元包)"
     fi
 }
