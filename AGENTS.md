@@ -230,3 +230,23 @@ docs/plans/           设计与计划文档
   实测镜像:7.6G 占用(96G sparse),1128 包,linux-cachyos-bore 7.1.8,
   cachyos-hooks + cachyos-settings + cachyos-zsh-config 链路完整,fstab 含
   /swap/swapfile 64G + /efi fmask=0077 + repart systemd-growfs-root.service 已 enable
+- 2026-08-17:hx370 真机第二轮:dd 后分区扩了、文件系统没扩(930G 分区里
+  btrfs 卡在镜像原大小 94.7G,Device slack 835G)。诊断+修复:
+  1) 分区侧 OK:systemd-repart + /etc/repart.d/50-root.conf(Type=root)首启
+     日志 "94.7G → 930.2G / Partition table written",与 2026-07-29 结论一致
+  2) fs 侧两处全断:a) lib/disk.sh 挂载根时带 x-systemd.growfs 指望 genfstab
+     记进 fstab——错。内核丢弃 x-*(util-linux 只写 utab),genfstab 只读
+     /proc/self/mountinfo(本机 loop+btrfs 实测复现),fstab 根行从未有过该选项,
+     systemd-growfs-root.service(fstab-generator 靠它接线)从未被拉起;
+     b) repart 配置里的 GrowFileSystem 是不存在的 key(261 man/binary 均无,
+     静默忽略),属无效字段
+  修复:modules/growfs.sh 装完后直接补写 fstab 根行(awk 追加 x-systemd.growfs
+  到 options;注意 genfstab 用空格对齐列宽,$2 是 "/          ",匹配必须 trim;
+  补丁带行数+匹配双防护,防 awk 转义错误产出坏 fstab——真机远程修机时踩过);
+  repart.d 删无效行;lib/disk.sh 删无效挂载选项+纠正注释。真机端到端验证:
+  fstab 补上该选项后 daemon-reload 即见 /run/systemd/generator/-.mount.wants/
+  systemd-growfs-root.service + local-fs.target.d/50-order drop-in;手工
+  systemctl start 后根 931G(70G used / 860G avail)
+  另:该机 KDE autologin 闲置 15 分钟被 powerdevil 自动休眠过一次(SSH 断连),
+  与本修复无关;无人值守机器建议 KDE 能源设置关自动休眠或 mask suspend.target
+  tests 212 项全过(新增 2 项:growfs 补写 fstab、回归防护 GrowFileSystem)

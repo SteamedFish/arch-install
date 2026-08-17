@@ -91,10 +91,11 @@ _EOF_
     btrfs subvolume create "$MNT_DIR"/ArchLinux >/dev/null
     umount "$MNT_DIR"
 
-    # x-systemd.growfs:x- 前缀选项内核忽略、由 genfstab 记录进 fstab;
-    # 首启 systemd-fstab-generator 生成 systemd-growfs@-.service 把 fs 扩满分区
-    # (模板自带 After=systemd-repart.service,先扩分区再扩 fs;幂等)
-    mount -o subvol=ArchLinux,noatime,compress=zstd,x-systemd.growfs "$PART_ROOT" "$MNT_DIR"
+    # 注:不能靠挂载选项 x-systemd.growfs 让 genfstab 记进 fstab——内核丢弃
+    # x-*(util-linux 只写 utab),genfstab 只读 /proc/self/mountinfo,不记录
+    # (2026-08-17 真机实测)。fstab 根行的 x-systemd.growfs 由 modules/growfs.sh
+    # 装完后直接补写。
+    mount -o subvol=ArchLinux,noatime,compress=zstd "$PART_ROOT" "$MNT_DIR"
     mkdir -p "$MNT_DIR"/efi "$MNT_DIR"/boot
     # ESP 必须 fmask=0077:默认 0022 下 /efi 全员可读,bootctl 会报
     # random-seed 文件 world accessible 安全警告(systemd 官方建议 ESP root-only)
