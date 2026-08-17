@@ -204,3 +204,29 @@ docs/plans/           设计与计划文档
   后置插入的 cachyos-* 段不影响)。modules/pacman.sh 删原 sed,留一行
   注释指向 distro。tests 210 项全过(新增 3 项:两 distro 各 +1、
   pacman 模块不再含 uncomment 模式的反向断言),shellcheck 无 error
+- 2026-08-17:构建 hx370+kde 镜像(96G dd-able)期间实测修复四类问题:
+  1) NJU 在本网络对 .db/.sig 间歇 TLS connect error / 500,触发 pacman
+     too-many-errors 放弃整笔事务——影响 pacstrap 与 chroot -Sy。修复:
+     `config/hx370-mirrorlist.txt`(gitignored,host mirrorlist 旁路用,
+     USTC/aliyun/tuna 等实测可达源)+ `config/hx370.sh` 的 MY_MIRRORLIST_FILE
+     指过去;旁路覆盖宿主 /etc/pacman.d/mirrorlist(pacstrap 读宿主 mirrorlist,
+     `--mirrorlist config` 仅影响 chroot 内 pacman);`config/cachyos-mirrorlist.china`
+     同步剔除 NJU,USTC 升首位 + huaweicloud 二位(aliyun/tuna 不同步 cachyos)
+  2) `modules/base.sh` useradd -G docker:docker 模块安装前 docker 组不存在,
+     useradd 返回 exit 6(set -e 杀脚本)。修复:docker 在 RESOLVED_MODULES 时
+     先 `chroot_run groupadd -f docker`(-f 静默通过,后续 docker 包 install 仍
+     装同组,id 恒等)。默认 --mirrorlist copy 走不同事务路径,该错误一直藏着;
+     --mirrorlist config 暴露
+  3) `modules/pacman.sh` `--mirrorlist config` 下接管 mirrorlist 时报
+     "target not found: archcn-mirrorlist-git"——实际包名 archlinuxcn-mirrorlist-git
+     (本仓文件路径 `/etc/pacman.d/archcn-mirrorlist` 是对的,只包名错)。
+     修复 modules/pacman.sh 行 63 与 tests/run.sh 行 120
+  4) hx370 镜像默认 64G swapfile(modules/mem-zswap 内建 btrfs NOCOW,sibling
+     subvol /swap);镜像大小 96G 给 rootfs 与装载缓冲;MY_NTP_SERVERS 留空即
+     不写入额外 NTP server(chrony 默认 pool)
+  经验:1) `--mirrorlist config` 只覆盖 chroot 内 pacman,pacstrap 用宿主 mirrorlist,
+     旁路需手动覆盖或预改造宿主文件;2) wrapper 脚本 EXIT trap 在 `exec` 后
+     不保留,必须手动 restore 宿主改动;3) archlinuxcn 包名漂移需追仓库公告
+  实测镜像:7.6G 占用(96G sparse),1128 包,linux-cachyos-bore 7.1.8,
+  cachyos-hooks + cachyos-settings + cachyos-zsh-config 链路完整,fstab 含
+  /swap/swapfile 64G + /efi fmask=0077 + repart systemd-growfs-root.service 已 enable

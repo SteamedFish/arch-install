@@ -8,7 +8,7 @@
 mod_requires() { echo pacman; }
 
 mod_install() {
-    pacman_install flatpak lutris proton wine wine-gecko wine-mono
+    pacman_install flatpak lutris wine wine-gecko wine-mono
     # 纯依赖定位(--asdeps,避免被当成显式安装)
     chroot_run pacman -S --asdeps --needed --noconfirm mangohud gamescope gamemode
     # 以下包仅在 [archlinuxcn]:
@@ -18,7 +18,7 @@ mod_install() {
         pacman_install ananicy-cpp
         # CachyOS 官方游戏元包:applications 拉常用工具(反作弊/Gamemode 客户端等),
         # meta 拉 Steam/Lutris/Heroic 等启动器。Arch 上无对应仓库路径,仅在此安装。
-        pacman_install cachyos-gaming-applications cachyos-gaming-meta
+        #pacman_install cachyos-gaming-applications cachyos-gaming-meta
         chroot_enable ananicy-cpp.service
     else
         log "跳过 ananicy-cpp 与 cachyos-gaming-*(仅 CachyOS 启用;Arch 上该服务有问题,且仓库无对应元包)"

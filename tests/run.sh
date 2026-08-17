@@ -117,7 +117,7 @@ check "ssh 要求默认公钥" "grep -q MY_SSH_PUBKEYS modules/ssh.sh"
 check "ssh 写 authorized_keys" "grep -q authorized_keys modules/ssh.sh"
 check "ssh 首启生成 host key" "grep -q sshdgenkeys modules/ssh.sh"
 check "ananicy-cpp 仅 cachyos" "grep -q 'DISTRO == cachyos' modules/gaming.sh"
-check "archcn 包接管镜像列表" "grep -q archcn-mirrorlist-git modules/pacman.sh"
+check "archcn 包接管镜像列表" "grep -q archlinuxcn-mirrorlist-git modules/pacman.sh"
 check "original 用 pacman-mirrorlist 包" "grep -q 'pacman_install pacman-mirrorlist' modules/pacman.sh"
 
 # ---- 8b. multilib 由 distro_setup_repos 启用(不依赖 pacman 模块)----

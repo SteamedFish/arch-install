@@ -1,4 +1,4 @@
-# CachyOS 国内镜像(NJU 主、USTC 备;cdn77 在本网络被重置)。
+# CachyOS 国内镜像(USTC 主、NJU 已剔除;cdn77 在本网络被重置)
 # 优化段在 x86_64_v3/ 或 x86_64_v4/ 下(按 build 目标 CPU 选),[cachyos] 段
 # 在 x86_64/ 下;pacman 按 $repo 展开段名,404 自动回落下一行。
 #
@@ -13,9 +13,12 @@
 #           grep -v x86_64_v3 -e x86_64_v4 → x86_64 基础路径 mirrorlist
 #   对 v4/znver4 段:同上但 v3/v4 互换。其他级别的路径行会被丢弃,
 #   所以三个级别共用同一文件是安全的。
-Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64_v3/$repo
+#
+# 2026-08-17:NJU 在本网络抓 .db 出现 TLS connect error (unexpected eof),
+#            导致签名验证失败;实测 USTC 全段稳定快速(17MB/s),剔除 NJU。
 Server = https://mirrors.ustc.edu.cn/cachyos/repo/x86_64_v3/$repo
-Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64_v4/$repo
+Server = https://mirrors.huaweicloud.com/cachyos/repo/x86_64_v3/$repo
 Server = https://mirrors.ustc.edu.cn/cachyos/repo/x86_64_v4/$repo
-Server = https://mirror.nju.edu.cn/cachyos/repo/x86_64/$repo
+Server = https://mirrors.huaweicloud.com/cachyos/repo/x86_64_v4/$repo
 Server = https://mirrors.ustc.edu.cn/cachyos/repo/x86_64/$repo
+Server = https://mirrors.huaweicloud.com/cachyos/repo/x86_64/$repo

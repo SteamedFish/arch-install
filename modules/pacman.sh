@@ -60,7 +60,7 @@ EOF
     if [[ $MIRRORLIST != copy ]]; then
         # 官方包接管镜像列表;--overwrite 覆盖上面引导用的单行文件(该文件不属于任何包)
         chroot_run pacman -S --needed --noconfirm \
-            --overwrite '/etc/pacman.d/archcn-mirrorlist' archcn-mirrorlist-git
+            --overwrite '/etc/pacman.d/archcn-mirrorlist' archlinuxcn-mirrorlist-git
     fi
     chroot_run sed -i 's/^SigLevel = Optional/#&/' /etc/pacman.conf
 }
