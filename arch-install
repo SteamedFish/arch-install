@@ -194,6 +194,9 @@ main() {
     # 清空 machine-id:dd/克隆到多台机器会撞 ID(官方安装器同款处理,
     # arch/cachyos 通用);空文件被 systemd 视为未初始化,首启自动生成
     : >"$MNT_DIR/etc/machine-id"
+    # dbus 的 machine-id(可能是 /etc/machine-id 的 symlink 或独立副本,
+    # 不一定存在)一并删掉,首启由 dbus 从 /etc/machine-id 重建
+    rm -f "$MNT_DIR/var/lib/dbus/machine-id"
     # random-seed 同理:克隆会导致多台机器共用同一随机种子(原脚本同款清理)
     rm -f "$MNT_DIR/var/lib/systemd/random-seed" "$MNT_DIR/efi/loader/random-seed"
 

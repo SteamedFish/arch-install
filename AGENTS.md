@@ -250,3 +250,6 @@ docs/plans/           设计与计划文档
   另:该机 KDE autologin 闲置 15 分钟被 powerdevil 自动休眠过一次(SSH 断连),
   与本修复无关;无人值守机器建议 KDE 能源设置关自动休眠或 mask suspend.target
   tests 212 项全过(新增 2 项:growfs 补写 fstab、回归防护 GrowFileSystem)
+- 2026-08-17:cleanup 追加删除 /var/lib/dbus/machine-id(rm -f,可能是
+  /etc/machine-id 的 symlink 或独立副本,不一定存在;dbus 首启时从
+  /etc/machine-id 重建)。与既有 machine-id 清空/dd 防撞逻辑同组
