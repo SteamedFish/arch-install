@@ -10,13 +10,14 @@ mod_conflicts() { echo desktop-niri; }
 mod_install() {
     pacman_install plasma-meta plasma-desktop sddm-kcm konsole xorg-xwayland \
         kdeconnect bluedevil
-    # KDE 专属应用(依赖 KDE 框架,从 gui-apps 收拢到这里)
+    # KDE 专属应用(依赖 KDE 框架);社交聊天客户端(KDE 原生但按用途归类)
+    # 移到 gui-apps,niri 用户也能用——KF6 deps 随包自动拉入
     pacman_install dolphin dolphin-plugins kate ark okular kgpg yakuake \
-        gwenview neochat tokodon kamera karchive kio-admin \
+        gwenview kamera karchive kio-admin \
         ffmpegthumbs kdegraphics-thumbnailers
     # CachyOS 专有:KDE 设置包与 Nord 主题(官方安装器同款,仅 [cachyos] 库有)
     if [[ ${DISTRO:-arch} == cachyos ]]; then
-        pacman_install cachyos-kde-settings cachyos-nord-kde-theme-git
+        pacman_install cachyos-kde-settings cachyos-nord-kde-theme-git cachyos-themes-sddm
     fi
     if [[ ${MY_GREETER_AUTOLOGIN:-0} == 1 ]]; then
         chroot_write_file /etc/sddm.conf.d/autologin.conf <<EOF

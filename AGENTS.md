@@ -250,6 +250,24 @@ docs/plans/           设计与计划文档
   另:该机 KDE autologin 闲置 15 分钟被 powerdevil 自动休眠过一次(SSH 断连),
   与本修复无关;无人值守机器建议 KDE 能源设置关自动休眠或 mask suspend.target
   tests 212 项全过(新增 2 项:growfs 补写 fstab、回归防护 GrowFileSystem)
+- 2026-08-21:四个小增项。
+  1) modules/gui-apps.sh 加 cachyos-firefox-settings(DISTRO==cachyos 守卫,
+     仅 [cachyos] 仓库有该包);
+  2) modules/dev-tools.sh 加 opencode;
+  3) modules/desktop-kde.sh 在原有 cachyos 守卫块里加 cachyos-themes-sddm;
+  4) distro/cachyos.sh 的 distro_post_install 增 systemd-boot-manager
+     (新内核装好后自动更新 systemd-boot 条目的路径单元,免手 bootctl)。
+     tests/run.sh 加 5 项断言,gui-apps.cachyos-firefox-settings + 守卫、
+     dev-tools.opencode、desktop-kde.cachyos-themes-sddm、
+     cachyos.systemd-boot-manager。
+- 2026-08-21:modules/dev-tools.sh 加 shellcheck([extra] 官方包,非 AUR),
+  tests/run.sh 加 1 项断言。
+- 2026-08-21:neochat/tokodon 从 desktop-kde 移到 gui-apps。这两个是 KDE
+  原生(Kirigami/QML),会拉入 KF6 deps,此前归 desktop-kde;现在作为社交
+  客户端归 gui-apps,niri 用户也能用(KF6 deps 自动拉入)。改动:desktop-kde
+  的"KDE 专属应用"段删两包,gui-apps 末尾追加;tests/run.sh 同步更新
+  原 `gui-apps 不应含 KDE 专属应用` 断言(改成只禁 dolphin/kate 等系统应用,
+  不再禁 tokodon),新增 4 项断言(neochat/tokodon 各在/不在的位)
 - 2026-08-17:cleanup 追加删除 /var/lib/dbus/machine-id(rm -f,可能是
   /etc/machine-id 的 symlink 或独立副本,不一定存在;dbus 首启时从
   /etc/machine-id 重建)。与既有 machine-id 清空/dd 防撞逻辑同组

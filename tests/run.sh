@@ -104,11 +104,17 @@ check "cachyos 查询最新版" "grep -q _cachyos_latest_pkg_url distro/cachyos.
 check "cachyos 支持自有 mirrorlist" "grep -q MY_CACHYOS_MIRRORLIST distro/cachyos.sh"
 check "支持 --cputype" "grep -q -- '--cputype' arch-install"
 check "KDE 专属应用在 desktop-kde" "grep -qw dolphin modules/desktop-kde.sh"
-if grep -qw 'dolphin\|kate\|tokodon' modules/gui-apps.sh; then
-    bad "gui-apps 不应含 KDE 专属应用"
+# tokodon/neochat 是 KDE 原生但归社交客户端,已在 gui-apps;dolphin/kate 等
+# KDE 系统应用仍不应渗入
+if grep -qw 'dolphin\|kate' modules/gui-apps.sh; then
+    bad "gui-apps 不应含 KDE 系统应用"
 else
-    ok "gui-apps 无 KDE 专属应用"
+    ok "gui-apps 无 KDE 系统应用"
 fi
+check "gui-apps 含 neochat(社交客户端)" "grep -qw neochat modules/gui-apps.sh"
+check "gui-apps 含 tokodon(社交客户端)" "grep -qw tokodon modules/gui-apps.sh"
+check "desktop-kde 不再含 neochat" "! grep -qw neochat modules/desktop-kde.sh"
+check "desktop-kde 不再含 tokodon" "! grep -qw tokodon modules/desktop-kde.sh"
 modules_list=$(./arch-install --modules 2>/dev/null)
 check "--modules 输出含 desktop-niri" "grep -q desktop-niri <<<'$modules_list'"
 
@@ -188,6 +194,15 @@ check "--modules 提前 exit 保留在 prescan" "grep -A5 '^prescan_args()' arch
 check "模板 devices/example.sh tracked 例外" "[[ -f devices/example.sh ]] && grep -q '!devices/example.sh' .gitignore"
 check "gitignore 忽略 devices/*.sh" "grep -q 'devices/\*.sh' .gitignore"
 check "usage 含 --device" "./arch-install --help 2>/dev/null | grep -q -- '--device'"
+
+# ---- 12. 新增安装包断言 ----
+check "gui-apps cachyos 装 cachyos-firefox-settings" "grep -q cachyos-firefox-settings modules/gui-apps.sh"
+check "gui-apps cachyos-firefox-settings 受 DISTRO 守卫" "grep -q 'DISTRO.*cachyos' modules/gui-apps.sh"
+check "dev-tools 含 opencode" "grep -q '\\<opencode\\>' modules/dev-tools.sh"
+check "dev-tools 含 shellcheck" "grep -q '\\<shellcheck\\>' modules/dev-tools.sh"
+check "desktop-kde cachyos 装 cachyos-themes-sddm" "grep -q cachyos-themes-sddm modules/desktop-kde.sh"
+check "cachyos distro_post_install 装 systemd-boot-manager" "grep -q systemd-boot-manager distro/cachyos.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
