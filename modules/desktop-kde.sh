@@ -9,7 +9,7 @@ mod_conflicts() { echo desktop-niri; }
 
 mod_install() {
     pacman_install plasma-meta plasma-desktop sddm-kcm konsole xorg-xwayland \
-        kdeconnect bluedevil
+        kdeconnect bluedevil xclip wl-clipboard
     # KDE 专属应用(依赖 KDE 框架);社交聊天客户端(KDE 原生但按用途归类)
     # 移到 gui-apps,niri 用户也能用——KF6 deps 随包自动拉入
     pacman_install dolphin dolphin-plugins kate ark okular kgpg yakuake \

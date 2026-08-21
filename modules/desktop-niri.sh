@@ -15,8 +15,9 @@ mod_install() {
         greetd greetd-tuigreet \
         polkit polkit-kde-agent \
         dms-shell dms-shell-niri quickshell \
-        kitty alacritty fuzzel mako waybar swaybg swaylock swayidle \
-        awww udiskie brightnessctl \
+         kitty alacritty fuzzel mako waybar swaybg swaylock swayidle \
+         xclip wl-clipboard \
+         awww udiskie brightnessctl \
         matugen cava qt6-multimedia-ffmpeg
     # dms-shell 推荐依赖(matugen 动态配色/cava 音频可视化/qt6 多媒体),
     # 与 dms 同处安装避免后续补装时的顺序问题
