@@ -203,6 +203,17 @@ check "dev-tools 含 shellcheck" "grep -q '\\<shellcheck\\>' modules/dev-tools.s
 check "desktop-kde cachyos 装 cachyos-themes-sddm" "grep -q cachyos-themes-sddm modules/desktop-kde.sh"
 check "cachyos distro_post_install 不装 systemd-boot-manager(/efi+/boot 双区不兼容)" "! grep -qE '^[^#]*systemd-boot-manager' distro/cachyos.sh"
 
+# ---- 13. zfs 模块断言 ----
+check "zfs 不进 profiles(--extra-modules 显式启用)" "! grep -rqw zfs profiles/"
+check "zfs cachyos 用内核匹配模块包" "grep -q '\\\${KERNEL_PKG}-zfs' modules/zfs.sh"
+check "zfs arch 走 archzfs 仓库" "grep -q 'archzfs/zfs-linux' modules/zfs.sh"
+check "zfs 用户态工具钉同源仓库(cachyos)" "grep -q 'cachyos/zfs-utils' modules/zfs.sh"
+check "zfs 用户态工具钉同源仓库(arch)" "grep -q 'archzfs/zfs-utils' modules/zfs.sh"
+check "zfs 启用导入/挂载服务" "grep -q 'zfs-import-cache.service zfs-mount.service' modules/zfs.sh"
+check "archzfs 段指向 GitHub Releases 分发" "grep -q 'releases/download/experimental' modules/zfs.sh"
+check "--modules 输出含 zfs" "grep -q '^zfs ' <<<'$modules_list'"
+check "dry-run 接受 --extra-modules zfs" "./arch-install --target /tmp/x.img --profile server --extra-modules zfs --distro cachyos --cachyos-kernel server --dry-run >/dev/null 2>&1"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo

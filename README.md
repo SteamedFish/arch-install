@@ -65,6 +65,7 @@ network:   network-networkd (server) / network-nm (desktop)
 tools:     cli-tools dev-tools docker virt
 desktop:   audio fonts ime bluetooth desktop-niri desktop-kde gui-apps gaming
 gpu (opt): gpu-amd gpu-nvidia gpu-intel gpgpu (OpenCL/ROCm/CUDA, `MY_GPGPU`)
+storage (opt): zfs (OpenZFS data pools, `--extra-modules zfs`; root stays btrfs)
 ```
 
 The `[archlinuxcn]` repo is always configured by the `pacman` module — packages like `rime-ice-git` and `an-anime-game-launcher-bwrap` only exist there. KDE-only apps (dolphin, kate, tokodon, …) live in `desktop-kde`; `gui-apps` holds DE-agnostic apps only. `[multilib]` is enabled unconditionally by `distro_setup_repos` (both Arch and CachyOS), so wine/steam and other 32-bit deps work even when `--skip-modules pacman` is used.

@@ -48,6 +48,23 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-22:新增 `modules/zfs.sh`(可选,`--extra-modules zfs` 启用,不进
+  profiles)。范围:数据池能力(内核模块+用户态+enable zfs-import-cache/
+  zfs-mount;两服务带 Condition 守卫,空系统静默跳过无 failed unit),根文件
+  系统仍是 btrfs,不支持 root on zfs,mkinitcpio 不动。包来源按 distro 分支:
+  cachyos 装 `${KERNEL_PKG}-zfs`([cachyos*] 自带按内核变体预编译、依赖锁内核
+  精确版本的模块包,不拉 zfs-utils 需显式同装);arch 配 [archzfs]
+  (archzfs.com 已停更,现由 GitHub Releases 分发,签名 key 轮换为
+  3A9917BF0DED5C13F69AC68FABEC0A1208037BE9,--recv-keys/--lsign-key 同 cachyos
+  keyring 手法)+ archzfs/zfs-linux。版本错位防护:[archlinuxcn] 的 zfs-utils
+  (2.4.4)比 cachyos/archzfs(2.4.3)新,pacman 按版本取最高会抢装造成用户态/
+  内核模块 minor 错位(import 报 version skew),故统一 `<repo>/<pkg>` 限定名
+  钉死同源。archzfs 段插 [core] 前沿用 head/tail 拼接(sed r/e 会吞 [core]
+  的 Include 行,cachyos.sh 同款教训)。devices/8845hs.sh 重写:钉
+  DISTRO=cachyos + CACHYOS_KERNEL=server + EXTRA_MODULES=zfs +
+  MY_SWAP_SIZE=128G(2×内存,zswap 溢出兜底)+ ttm.pages_limit/page_pool_size
+  =16777216(GTT=64G 全内存)+ SIZE=160G(rootfs+128G swapfile)。
+  tests/run.sh +9 项 zfs 断言共 233 项全过;zfs.sh shellcheck 无告警。
 - 2026-08-22:移除 `distro/cachyos.sh` 的 `systemd-boot-manager`(AUR)。原因:
   该 path unit 假定合并布局 `${ESP}/vmlinuz-*` + `${ESP}/loader/entries/`,本项目
   `lib/disk.sh` 是 `/efi`(纯 ESP)+ `/boot`(XBOOTLDR)双区,内核与 entries
