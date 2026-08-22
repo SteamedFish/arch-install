@@ -48,6 +48,15 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-22:移除 `distro/cachyos.sh` 的 `systemd-boot-manager`(AUR)。原因:
+  该 path unit 假定合并布局 `${ESP}/vmlinuz-*` + `${ESP}/loader/entries/`,本项目
+  `lib/disk.sh` 是 `/efi`(纯 ESP)+ `/boot`(XBOOTLDR)双区,内核与 entries
+  都在 `/boot`,不在 `/efi`,systemd-boot-manager 会找错位置。装包/配置/
+  enable 链路的硬约定:`enable` 在哪台机器都会触发失败,故整体移除比
+  conditional 包装更稳。新内核装好后用户需手 `bootctl install` 或复用
+  既有的 `install_bootloader` 路径(`lib/disk.sh:108` 已 `--esp-path=/efi
+  --boot-path=/boot`)。tests/run.sh 同步:原"装 systemd-boot-manager"
+  断言改反向断言"不装"。
 - 2026-07-28:设计文档与执行计划定稿;niri/uwsm 建议文档存于旧仓库
   `arch-image-creation/niri-uwsm-notes.md`
 - 2026-07-28:全部实现完成。骨架(lib×4 + 主入口)、distro×2、模块×24、

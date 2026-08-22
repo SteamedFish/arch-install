@@ -185,9 +185,10 @@ distro_post_install() {
     # cachyos-hooks:alpm hooks(branding/os-release/update-initramfs 等)——注意它不含
     # mkinitcpio preset,fallback initramfs 仍不会生成(install_bootloader 已按存在性跳过)
     # cachyos-zsh-config:官方安装器对用户 shell 的同款处理(base.sh 固定 zsh)
-    # systemd-boot-manager:新内核装好后自动更新 systemd-boot 条目的路径单元(替代手 bootctl),
-    # 配合 cachyos 高频内核更新很有用
-    pacman_install cachyos-settings cachyos-hooks cachyos-zsh-config systemd-boot-manager
+    # 注:曾考虑加 systemd-boot-manager(AUR)自动维护 loader entries,但它假定
+    # ${ESP}/vmlinuz-* + ${ESP}/loader/entries/ 的合并布局;本项目 /efi(纯 ESP)+
+    # /boot(XBOOTLDR)双区,内核与 entries 在 /boot,不在 /efi,故不兼容
+    pacman_install cachyos-settings cachyos-hooks cachyos-zsh-config
     # --mirrorlist reflector 时用 cachyos 官方排序工具重排(需要联网)
     if [[ ${MIRRORLIST:-copy} == reflector ]]; then
         pacman_install cachyos-rate-mirrors

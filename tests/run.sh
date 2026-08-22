@@ -201,7 +201,7 @@ check "gui-apps cachyos-firefox-settings 受 DISTRO 守卫" "grep -q 'DISTRO.*ca
 check "dev-tools 含 opencode" "grep -q '\\<opencode\\>' modules/dev-tools.sh"
 check "dev-tools 含 shellcheck" "grep -q '\\<shellcheck\\>' modules/dev-tools.sh"
 check "desktop-kde cachyos 装 cachyos-themes-sddm" "grep -q cachyos-themes-sddm modules/desktop-kde.sh"
-check "cachyos distro_post_install 装 systemd-boot-manager" "grep -q systemd-boot-manager distro/cachyos.sh"
+check "cachyos distro_post_install 不装 systemd-boot-manager(/efi+/boot 双区不兼容)" "! grep -qE '^[^#]*systemd-boot-manager' distro/cachyos.sh"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
