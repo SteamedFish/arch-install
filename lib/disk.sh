@@ -35,7 +35,13 @@ prepare_target() {
             log "创建镜像: $TARGET ($SIZE)"
             # 稀疏文件:ls 看到 $SIZE,实际只占已写入的块(du 才是真实占用),
             # 既留足扩容余量又不浪费宿主机磁盘(原为 preallocation=full 全量分配)
-            qemu-img create -f raw -o preallocation=off "$TARGET" "$SIZE" >/dev/null
+            if command -v qemu-img >/dev/null 2>&1; then
+                qemu-img create -f raw -o preallocation=off "$TARGET" "$SIZE" >/dev/null
+            else
+                # 回退 truncate(util-linux):raw+preallocation=off 本就是全零
+                # 稀疏文件,与 truncate -s 逐字节等价;宿主机没装 qemu 也能建镜像
+                truncate -s "$SIZE" "$TARGET"
+            fi
         else
             warn "镜像已存在,将被重新分区: $TARGET"
         fi
