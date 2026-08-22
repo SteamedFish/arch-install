@@ -36,7 +36,7 @@ _cachyos_detect_level() {
         return
     fi
     local supported
-    supported=$(/lib/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -o 'x86-64-v[34]' | sort -u)
+    supported=$(/lib/ld-linux-x86-64.so.2 --help 2>/dev/null)
     # znver4 仅 AMD 平台可能;检测基于宿主机 CPU,跨厂商构建(--cputype)
     # 时 gcc -march=native 不可信,请用 --cachyos-repo 显式指定
     local family=${CPUTYPE:-auto}
@@ -49,9 +49,11 @@ _cachyos_detect_level() {
             return
         fi
     fi
-    if grep -q x86-64-v4 <<<"$supported"; then
+    # 必须带 "(supported":ld.so 对不支持的级别也输出裸级别名,只判字符串存在
+    # 会把 v3-only 宿主误判成 v4,chroot 拉入 v4 二进制即 Illegal instruction(2700X 实测)
+    if grep -q 'x86-64-v4 (supported' <<<"$supported"; then
         CACHYOS_REPO_LEVEL=v4
-    elif grep -q x86-64-v3 <<<"$supported"; then
+    elif grep -q 'x86-64-v3 (supported' <<<"$supported"; then
         CACHYOS_REPO_LEVEL=v3
     else
         CACHYOS_REPO_LEVEL=generic

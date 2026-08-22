@@ -214,6 +214,11 @@ check "archzfs 段指向 GitHub Releases 分发" "grep -q 'releases/download/exp
 check "--modules 输出含 zfs" "grep -q '^zfs ' <<<'$modules_list'"
 check "dry-run 接受 --extra-modules zfs" "./arch-install --target /tmp/x.img --profile server --extra-modules zfs --distro cachyos --cachyos-kernel server --dry-run >/dev/null 2>&1"
 
+# ---- 14. cachyos 仓库等级检测回归(v3-only 宿主误判 v4 → SIGILL) ----
+# ld.so 对不支持的级别也输出裸级别名,判定必须带 "(supported" 标记
+check "等级检测要求 ld.so supported 标记" "grep -q \"x86-64-v4 (supported'\" distro/cachyos.sh"
+check "等级检测不再裸匹配级别字符串" "! grep -q 'grep -q x86-64-v4 <' distro/cachyos.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo

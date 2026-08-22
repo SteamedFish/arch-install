@@ -48,6 +48,12 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-22:cachyos 仓库等级检测修复:`ld.so --help` 对不支持的级别也输出
+  裸级别名行(v3-only 机上 x86-64-v4 无 "(supported, searched)" 后缀),旧判定
+  只 grep 字符串存在 → v3-only 构建宿主(2700X)误判 v4,chroot -Syu 拉入 v4
+  二进制后 pacman 一执行即 Illegal instruction。`_cachyos_detect_level` 改为
+  必须匹配 "(supported";tests/run.sh +2(共 235)。devices/8845hs.sh 同步钉
+  CACHYOS_REPO=v3(chroot 内二进制在构建宿主 CPU 执行,等级上限由构建机决定)
 - 2026-08-22:新增 `modules/zfs.sh`(可选,`--extra-modules zfs` 启用,不进
   profiles)。范围:数据池能力(内核模块+用户态+enable zfs-import-cache/
   zfs-mount;两服务带 Condition 守卫,空系统静默跳过无 failed unit),根文件
