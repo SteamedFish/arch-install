@@ -51,6 +51,20 @@ net.ipv4.conf.default.log_martians = 1
 # default: 0
 net.ipv4.conf.all.log_martians = 1
 
+# 多接口机器(桌面 eth+wlan 同网段、软路由多网段/bridge)的 ARP 行为修正:
+# 默认内核对本机任意 IP 的 ARP 请求在任意口应答、ARP 请求源地址也可用
+# 任意本机地址,导致同网段时 ARP flux(MAC flapping)、跨网段时 WAN IP
+# 应答泄漏到 LAN。all=现有接口,default=之后创建的接口,两者语义不同都需设。
+# 不设 lo.*:那是 VIP 挂 lo 的 LVS-DR/VRRP 场景配方,本仓库无此场景。
+# default: 0
+net.ipv4.conf.all.arp_ignore = 1
+# default: 0
+net.ipv4.conf.default.arp_ignore = 1
+# default: 0
+net.ipv4.conf.all.arp_announce = 2
+# default: 0
+net.ipv4.conf.default.arp_announce = 2
+
 # mitigate TIME-WAIT Assassination hazards in TCP
 # refer to RFC1337
 # default: 0

@@ -48,6 +48,13 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-23:modules/sysctl.sh 新增 ARP 行为修正四条:`all/default.arp_ignore=1`
+  + `all/default.arp_announce=2`。场景:多接口机器——桌面 eth+wlan 同网段
+  (默认 arp_ignore=0 任意口替本机所有 IP 应答 → ARP flux/MAC flapping)、
+  软路由多网段或 bridge(WAN IP 的 ARP 应答泄漏到 LAN;ARP 请求 sender
+  地址可跨网段污染)。all 管现有接口、default 管之后创建的接口,语义不同
+  都需设;不设 lo.*(VIP 挂 lo 的 LVS-DR/VRRP 配方,本仓库无此场景)。
+  tests/run.sh +5(共 250)。
 - 2026-08-23:跨等级构建预检:显式 `--cachyos-repo` 高于宿主能力时动磁盘前直接
   die(不再尝试模拟后中途 SIGILL)。定论:x86-64-v4/znver4 含 AVX-512,qemu
   TCG 至今未实现(qemu#2878,用户态/系统模式同源;-cpu

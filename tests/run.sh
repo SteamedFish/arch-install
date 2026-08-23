@@ -234,6 +234,13 @@ check "模拟用静态解释器(chroot 内可用)" "grep -qF 'qemu-x86_64-static
 check "预检对超宿主等级直接拒绝" "grep -q '高于宿主执行能力' distro/cachyos.sh"
 check "拒绝消息说明 AVX-512 原因" "grep -q 'AVX-512' distro/cachyos.sh"
 
+# ---- 17. ARP 行为修正(多接口机器)----
+check "sysctl 设 all.arp_ignore=1" "grep -q 'net.ipv4.conf.all.arp_ignore = 1' modules/sysctl.sh"
+check "sysctl 设 default.arp_ignore=1" "grep -q 'net.ipv4.conf.default.arp_ignore = 1' modules/sysctl.sh"
+check "sysctl 设 all.arp_announce=2" "grep -q 'net.ipv4.conf.all.arp_announce = 2' modules/sysctl.sh"
+check "sysctl 设 default.arp_announce=2" "grep -q 'net.ipv4.conf.default.arp_announce = 2' modules/sysctl.sh"
+check "sysctl 不设 lo.arp_*(LVS-DR/VRRP 场景才需要)" "! grep -q 'conf.lo.arp_' modules/sysctl.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
