@@ -264,6 +264,20 @@ check "mem-zram sysctl page-cluster=0" "grep -q 'vm.page-cluster = 0' modules/me
 check "mem-zram sysctl vfs_cache_pressure=50" "grep -q 'vm.vfs_cache_pressure = 50' modules/mem-zram.sh"
 check "mem-zswap zram 回退分支同款配套" "grep -q '70-zram.conf' modules/mem-zswap.sh && grep -q 'zswap-off.conf' modules/mem-zswap.sh"
 
+# ---- 20. firewall 迁移 nftables(2026-08-23)----
+# Arch 原生开机加载:nftables.service(ExecStart=nft -f /etc/nftables.conf)
+check "firewall 装 nftables 包" "grep -q 'pacman_install nftables' modules/firewall.sh"
+check "firewall 写 /etc/nftables.conf" "grep -q '/etc/nftables.conf' modules/firewall.sh"
+check "nftables 用 inet filter 单表统一 v4/v6" "grep -q 'table inet filter' modules/firewall.sh"
+check "input 链 policy drop" "grep -q 'policy drop' modules/firewall.sh"
+check "放行 established/related" "grep -q 'ct state established,related accept' modules/firewall.sh"
+check "放行 ICMPv6(NDP 必需)" "grep -q 'meta l4proto ipv6-icmp' modules/firewall.sh"
+check "flush ruleset 保证 service 重启幂等" "grep -q 'flush ruleset' modules/firewall.sh"
+check "开机加载走 nftables.service" "grep -q 'chroot_enable nftables.service' modules/firewall.sh"
+check "SSH 端口仍读 MY_SSH_PORT(与 ssh 模块一致)" "grep -q MY_SSH_PORT modules/firewall.sh"
+check "不再写 /etc/iptables 规则文件" "! grep -q '/etc/iptables/' modules/firewall.sh"
+check "不再 enable iptables/ip6tables 服务" "! grep -qE '(iptables|ip6tables)\\.service' modules/firewall.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
