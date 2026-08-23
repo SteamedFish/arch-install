@@ -28,35 +28,56 @@ _cachyos_latest_pkg_url() {
     echo "$CACHYOS_CDN/$file"
 }
 
+# 宿主 CPU 执行能力等级:输出 generic|v3|v4(znver4 归并为 v4,仅用于比较)。
+# 纯宿主信号,与目标机 CPUTYPE 无关:gcc -march=native 永远探测的是构建机 CPU。
+# ld.so 判定必须带 "(supported":不支持的级别也输出裸级别名,只判字符串存在
+# 会把 v3-only 宿主误判成 v4(2700X 上 -Syu 拉入 v4 二进制即 Illegal instruction)
+_cachyos_host_level() {
+    local supported march
+    supported=$(/lib/ld-linux-x86-64.so.2 --help 2>/dev/null)
+    march=$(gcc -march=native -Q --help=target 2>/dev/null | awk '/^march=/{print $NF; exit}')
+    if [[ $march == znver4 || $march == znver5 ]] || grep -q 'x86-64-v4 (supported' <<<"$supported"; then
+        echo v4
+    elif grep -q 'x86-64-v3 (supported' <<<"$supported"; then
+        echo v3
+    else
+        echo generic
+    fi
+}
+
+_cachyos_level_rank() {
+    case $1 in
+        generic) echo 0 ;;
+        v3) echo 1 ;;
+        v4 | znver4) echo 2 ;;
+        *) die "未知 CachyOS 仓库等级: $1" ;;
+    esac
+}
+
+# 跨等级构建预检:显式 --cachyos-repo 高于宿主能力时直接拒绝(动磁盘前)。
+# 为什么不能模拟:x86-64-v4/znver4 包含 AVX-512,而 qemu TCG(用户态与系统
+# 模式同源)至今未实现 AVX-512(qemu#2878),v4 二进制在任何模拟路径下都会
+# SIGILL——宿主实测 qemu 11.1 复现。出路:换 v4 级构建机,或降目标等级。
+_cachyos_preflight_emulation() {
+    HOST_LEVEL=$(_cachyos_host_level)
+    if [[ ${CACHYOS_REPO:-} == auto || -z ${CACHYOS_REPO:-} ]]; then
+        return 0   # auto 跟随宿主能力,原生执行
+    fi
+    if (($( _cachyos_level_rank "$CACHYOS_REPO") <= $( _cachyos_level_rank "$HOST_LEVEL"))); then
+        return 0   # 显式等级不超过宿主能力,原生执行
+    fi
+    die "仓库优化等级 $CACHYOS_REPO 高于宿主执行能力($HOST_LEVEL):v4 含 AVX-512,
+qemu TCG 不支持模拟该指令集(qemu#2878),chroot 内必 SIGILL。请在 v4 级构建机上运行,
+或改用 --cachyos-repo $HOST_LEVEL。"
+}
+
 # 输出 v3|v4|znver4|generic(写入全局 CACHYOS_REPO_LEVEL)
 _cachyos_detect_level() {
-    # --cachyos-repo 显式指定优先
+    # --cachyos-repo 显式指定优先;高于宿主的等级已被预检拒绝,此处必可原生执行
     if [[ -n ${CACHYOS_REPO:-} && ${CACHYOS_REPO:-} != auto ]]; then
         CACHYOS_REPO_LEVEL=$CACHYOS_REPO
-        return
-    fi
-    local supported
-    supported=$(/lib/ld-linux-x86-64.so.2 --help 2>/dev/null)
-    # znver4 仅 AMD 平台可能;检测基于宿主机 CPU,跨厂商构建(--cputype)
-    # 时 gcc -march=native 不可信,请用 --cachyos-repo 显式指定
-    local family=${CPUTYPE:-auto}
-    [[ $family == auto ]] && family=$(detect_cputype)
-    if [[ $family == amd ]]; then
-        local march
-        march=$(gcc -march=native -Q --help=target 2>/dev/null | grep 'march=' | head -1 | awk '{print $NF}')
-        if [[ $march == znver4 ]]; then
-            CACHYOS_REPO_LEVEL=znver4
-            return
-        fi
-    fi
-    # 必须带 "(supported":ld.so 对不支持的级别也输出裸级别名,只判字符串存在
-    # 会把 v3-only 宿主误判成 v4,chroot 拉入 v4 二进制即 Illegal instruction(2700X 实测)
-    if grep -q 'x86-64-v4 (supported' <<<"$supported"; then
-        CACHYOS_REPO_LEVEL=v4
-    elif grep -q 'x86-64-v3 (supported' <<<"$supported"; then
-        CACHYOS_REPO_LEVEL=v3
     else
-        CACHYOS_REPO_LEVEL=generic
+        CACHYOS_REPO_LEVEL=${HOST_LEVEL:-$(_cachyos_host_level)}
     fi
 }
 
@@ -67,7 +88,7 @@ distro_setup_repos() {
     sed -i '/^#\[multilib\]/ { s/^#//; n; /^#Include/ s/^#// }' "$MNT_DIR/etc/pacman.conf"
 
     _cachyos_detect_level
-    log "CachyOS 仓库优化等级: $CACHYOS_REPO_LEVEL"
+    log "CachyOS 仓库优化等级: $CACHYOS_REPO_LEVEL(宿主能力: ${HOST_LEVEL:-?})"
 
     # keyring 必装(仓库验签),版本从 CDN 实时查询
     # 注意不能用 pacman_install(它固定注入 -S,与 -U 冲突);

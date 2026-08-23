@@ -164,6 +164,10 @@ main() {
     ((DRY_RUN == 0)) || { info "dry-run,不执行"; exit 0; }
     ((EUID == 0)) || die "请用 root 运行: sudo ./arch-install ...(dry-run 不需要 root)"
 
+    # 跨等级构建预检(仅 cachyos 有定义):目标等级高于宿主 CPU 时启用
+    # qemu-user 模拟;缺依赖在此失败,不留下半成品镜像
+    declare -F _cachyos_preflight_emulation &>/dev/null && _cachyos_preflight_emulation
+
     prepare_target                # 镜像:qemu-img+losetup;物理盘:占用检查+确认
     trap cleanup_target EXIT      # 失败/完成都 umount + losetup -d
     partition_and_mount           # → MNT_DIR

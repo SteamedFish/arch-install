@@ -219,6 +219,21 @@ check "dry-run 接受 --extra-modules zfs" "./arch-install --target /tmp/x.img -
 check "等级检测要求 ld.so supported 标记" "grep -q \"x86-64-v4 (supported'\" distro/cachyos.sh"
 check "等级检测不再裸匹配级别字符串" "! grep -q 'grep -q x86-64-v4 <' distro/cachyos.sh"
 
+# ---- 15. 跨等级构建(qemu-user 模拟)----
+check "宿主能力与目标等级分离检测" "grep -q '_cachyos_host_level' distro/cachyos.sh"
+check "等级序比较函数存在" "grep -q '_cachyos_level_rank' distro/cachyos.sh"
+check "动磁盘前预检模拟依赖" "grep -q '_cachyos_preflight_emulation' arch-install"
+check "缺 qemu-user-static 时提示安装" "grep -q 'qemu-user-static' lib/chroot.sh"
+check "模拟走显式 qemu 前缀执行" "grep -qF 'exec chroot \"\$mnt\" \"\$emu\"' lib/chroot.sh"
+check "静态解释器复制进目标系统" "grep -q '_chroot_stage_emulator' lib/chroot.sh"
+check "模拟模式设 QEMU_CPU=max" "grep -q 'QEMU_CPU=max' lib/chroot.sh"
+check "模拟用静态解释器(chroot 内可用)" "grep -qF 'qemu-x86_64-static' lib/chroot.sh"
+
+# ---- 16. v4 不可模拟硬限制(回归防护)----
+# qemu TCG 无 AVX-512(qemu#2878),v4 高于宿主必须拒绝而非尝试模拟
+check "预检对超宿主等级直接拒绝" "grep -q '高于宿主执行能力' distro/cachyos.sh"
+check "拒绝消息说明 AVX-512 原因" "grep -q 'AVX-512' distro/cachyos.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
