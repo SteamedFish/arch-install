@@ -48,6 +48,21 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-23:firewall 模块迁移 nftables(Arch 原生)。modules/firewall.sh 改为
+  pacman_install nftables(装包收归模块内,符合"装包/配置/enable 同模块")+
+  写 `/etc/nftables.conf` + enable `nftables.service`(ExecStart=nft -f
+  /etc/nftables.conf,wiki 标准开机加载,不再用 iptables/ip6tables.service)。
+  配置从原 iptables.rules/ip6tables.rules 两份合并为单一 inet filter 表统一
+  v4/v6,规则语义一一对应:iifname "lo"(原 127/8+::1)、ct state
+  established,related(原 -m state RELATED,ESTABLISHED)、meta l4proto
+  icmp/ipv6-icmp(ICMPv6 全放行保 NDP 邻居发现)、v4 私网三段
+  {10/8,172.16/12,192.168/16}+v6 ULA fc00::/7、tcp dport MY_SSH_PORT(空则 22,
+  与 ssh 模块一致);input policy drop(原末行 -A INPUT -j DROP),forward/
+  output policy accept 不变;头部 flush ruleset 保证 service 重启幂等。
+  iptables-nft 留在 distro_base_packages 并补注释(docker 运行时调 iptables
+  命令建 NAT 链,xtables 兼容层落 ip 族表与本 inet 表互不干扰;移除则后装
+  docker 时 pacman 按字母序挑 provider)。生成配置经本机 nft --check 实际解析
+  通过。tests/run.sh +11(全过),shellcheck 对改动零新增告警。
 - 2026-08-23:zram 路径补全(mem-zram 全路径 + mem-zswap 的 MY_SWAP_SIZE=0
   回退分支,两处同款)。1) tmpfiles.d 写 `/etc/tmpfiles.d/zswap-off.conf` 关
   zswap——Arch 出厂 CONFIG_ZSWAP_DEFAULT_ON=y(config.x86_64 实拉核实),
