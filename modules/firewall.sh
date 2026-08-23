@@ -1,45 +1,38 @@
 #!/usr/bin/env bash
-# modules/firewall.sh — iptables-nft 防火墙(包已在 base 的 distro_base_packages)
+# modules/firewall.sh — nftables 防火墙(inet filter 单表统一 IPv4/IPv6)
 # 读取变量:MY_SSH_PORT(空则 22,与 ssh 模块保持一致)
-# enable 服务:iptables.service、ip6tables.service
+# enable 服务:nftables.service(Arch 原生开机加载:ExecStart=nft -f /etc/nftables.conf)
+# 注:iptables-nft 仍留在 distro_base_packages——docker 运行时依赖 iptables 命令建
+#     NAT 链(xtables 兼容层落在 ip 族表,与本模块的 inet 表互不干扰);若从 base
+#     移除,后装 docker 时 pacman 会按字母序挑 iptables provider(--noconfirm 下
+#     可能选中 legacy)
 
 mod_install() {
     local port=${MY_SSH_PORT:-22}
-    chroot_write_file /etc/iptables/iptables.rules <<EOF
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
+    pacman_install nftables
+    chroot_write_file /etc/nftables.conf <<EOF
+#!/usr/bin/nft -f
 
--A INPUT -p icmp -j ACCEPT
--A INPUT -s 127.0.0.0/8 -j ACCEPT
--A INPUT -s 10.0.0.0/8 -j ACCEPT
--A INPUT -s 172.16.0.0/12 -j ACCEPT
--A INPUT -s 192.168.0.0/16 -j ACCEPT
--A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+flush ruleset
 
-# ssh
--A INPUT -p tcp -m tcp --dport $port -j ACCEPT
-
--A INPUT -j DROP
-COMMIT
+table inet filter {
+    chain input {
+        type filter hook input priority filter; policy drop;
+        iifname "lo" accept
+        ct state established,related accept
+        meta l4proto icmp accept
+        meta l4proto ipv6-icmp accept
+        ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } accept
+        ip6 saddr fc00::/7 accept
+        tcp dport $port accept
+    }
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+    }
+    chain output {
+        type filter hook output priority filter; policy accept;
+    }
+}
 EOF
-    chroot_write_file /etc/iptables/ip6tables.rules <<EOF
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-
--A INPUT -s ::1/128 -j ACCEPT
--A INPUT -s fc00::/7 -j ACCEPT
--A INPUT -p ipv6-icmp -j ACCEPT
--A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-# ssh
--A INPUT -p tcp -m tcp --dport $port -j ACCEPT
-
--A INPUT -j DROP
-COMMIT
-EOF
-    chroot_enable iptables.service ip6tables.service
+    chroot_enable nftables.service
 }

@@ -4,6 +4,8 @@
 distro_base_packages() {
     # btrfs-progs 必须随 pacstrap 进:内核安装触发 mkinitcpio 时若缺 btrfsck,
     # fsck hook 报 No fsck helpers found 并使 pacman 以"构建有错"退出(实测)
+    # iptables-nft 仅为 docker 保留(运行时调 iptables 命令建 NAT 链;移除会让后装
+    # docker 时 pacman 按字母序挑 provider)。防火墙本体已迁 nftables(modules/firewall.sh)
     echo "base linux-firmware efifs iptables-nft btrfs-progs"
 }
 
