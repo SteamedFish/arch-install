@@ -48,6 +48,20 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-23:跨等级构建预检:显式 `--cachyos-repo` 高于宿主能力时动磁盘前直接
+  die(不再尝试模拟后中途 SIGILL)。定论:x86-64-v4/znver4 含 AVX-512,qemu
+  TCG 至今未实现(qemu#2878,用户态/系统模式同源;-cpu
+  max/Skylake-Server/Cooperlake/SapphireRapids 实测全 SIGILL),任何模拟路径
+  不可行;binfmt_misc 路线另死于一处——x86-64 宿主注册 x86-64 规则会让解释器
+  匹配自身→内核递归解释→ELOOP。实现:`_cachyos_host_level`(ld.so supported
+  标记 / gcc -march=znver4 探测)与 `_cachyos_level_rank`(generic<v3<v4)
+  分离宿主能力与目标等级;`_cachyos_preflight_emulation` 在 arch-install 主入口
+  dry-run 门后接线。lib/chroot.sh 的 CHROOT_EMULATE 路径保留但仅限 TCG 支持
+  的指令集(v2 宿主建 v3 镜像可用):显式 qemu-x86_64-static 前缀执行(不经
+  binfmt;qemu 不做 PATH 查找,命令必须绝对路径),QEMU_CPU=max 让 CPUID 如实
+  报告,unshare -m 私有挂载 proc/sys/dev。devices/8845hs.sh 钉回 v3(Zen4/5
+  构建机上可改回 znver4)。tests/run.sh +2(共 245):拒绝消息与 AVX-512 原因
+  回归防护。
 - 2026-08-22:cachyos 仓库等级检测修复:`ld.so --help` 对不支持的级别也输出
   裸级别名行(v3-only 机上 x86-64-v4 无 "(supported, searched)" 后缀),旧判定
   只 grep 字符串存在 → v3-only 构建宿主(2700X)误判 v4,chroot -Syu 拉入 v4
