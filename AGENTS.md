@@ -48,6 +48,19 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-23:zram 路径补全(mem-zram 全路径 + mem-zswap 的 MY_SWAP_SIZE=0
+  回退分支,两处同款)。1) tmpfiles.d 写 `/etc/tmpfiles.d/zswap-off.conf` 关
+  zswap——Arch 出厂 CONFIG_ZSWAP_DEFAULT_ON=y(config.x86_64 实拉核实),
+  zswap 会拦截换出页压进自己的池、池满才写到后端(zram),形成双重压缩链
+  白费 CPU,Arch Wiki Zram 页明确要求纯 zram 场景禁用;内建参数只能走
+  tmpfiles.d(既有结论),两模块互斥保证与 mem-zswap 的 zswap.conf 不同时
+  存在。2) 写 `/etc/sysctl.d/70-zram.conf` 五键:swappiness=180、
+  watermark_boost_factor=0、watermark_scale_factor=125、page-cluster=0
+  (Arch Wiki "Optimizing swap on zram",Pop!_OS/r/Fedora 基准同值)+
+  vfs_cache_pressure=50(用户指定,CachyOS cachyos-settings 同值)。
+  CachyOS 分支与 cachyos-settings 并存时本文件词序在后、重复键以这里为准;
+  真实启用 zswap 的路径不受影响(70-zswap.conf 仅 page-cluster=0)。
+  tests/run.sh +7(共 264)。
 - 2026-08-23:sysctl 审查修正三项(全面 review 后,外部事实均经源头核实)。
   1) 删 `vm.mmap_rnd_bits=32`/`mmap_rnd_compat_bits=16`(曾顶格):Arch 出厂
   即 28/8(6.7 曾升 32 后回退,config.x86_64 现值核实),顶格 32 破坏 LLVM

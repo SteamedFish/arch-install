@@ -39,6 +39,20 @@ EOF
 zram-size = ram
 compression-algorithm = zstd
 EOF
+        # 纯 zram 同款配套,内容与 mem-zram 一致(两分支本就重复
+        # zram-generator.conf,保持平齐):关 zswap(出厂默认开,双重压缩链)
+        # + swap 调优五键。理由详见 modules/mem-zram.sh。
+        chroot_write_file /etc/tmpfiles.d/zswap-off.conf <<'EOF'
+w /sys/module/zswap/parameters/enabled - - - - 0
+EOF
+        chroot_write_file /etc/sysctl.d/70-zram.conf <<'EOF'
+# 由 mem-zswap 回退 zram 分支写入:纯 zram 场景优化
+vm.swappiness = 180
+vm.watermark_boost_factor = 0
+vm.watermark_scale_factor = 125
+vm.page-cluster = 0
+vm.vfs_cache_pressure = 50
+EOF
         return 0
     fi
     log "创建 btrfs swapfile($size)"

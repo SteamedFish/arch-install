@@ -253,6 +253,17 @@ check "sysctl 保持 wmem_max 512MiB" "grep -q 'net.core.wmem_max = 536870912' m
 check "mem-zswap 写 page-cluster=0(sysctl)" "grep -q 'vm.page-cluster = 0' modules/mem-zswap.sh"
 check "mem-zswap sysctl 落点 70-zswap.conf" "grep -q '70-zswap.conf' modules/mem-zswap.sh"
 
+# ---- 19. zram 路径补全(2026-08-23)----
+# Arch 出厂 CONFIG_ZSWAP_DEFAULT_ON=y,纯 zram 必须关 zswap(双重压缩链)
+check "mem-zram 关 zswap(tmpfiles)" "grep -q 'zswap/parameters/enabled - - - - 0' modules/mem-zram.sh"
+# Arch Wiki "Optimizing swap on zram"(Pop!_OS/r/Fedora 基准同值)+ 用户指定 vfs_cache_pressure
+check "mem-zram sysctl swappiness=180" "grep -q 'vm.swappiness = 180' modules/mem-zram.sh"
+check "mem-zram sysctl 关 watermark boost" "grep -q 'vm.watermark_boost_factor = 0' modules/mem-zram.sh"
+check "mem-zram sysctl watermark_scale=125" "grep -q 'vm.watermark_scale_factor = 125' modules/mem-zram.sh"
+check "mem-zram sysctl page-cluster=0" "grep -q 'vm.page-cluster = 0' modules/mem-zram.sh"
+check "mem-zram sysctl vfs_cache_pressure=50" "grep -q 'vm.vfs_cache_pressure = 50' modules/mem-zram.sh"
+check "mem-zswap zram 回退分支同款配套" "grep -q '70-zram.conf' modules/mem-zswap.sh && grep -q 'zswap-off.conf' modules/mem-zswap.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
