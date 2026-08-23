@@ -15,13 +15,10 @@ kernel.sysrq = 0
 # default: 0
 kernel.kexec_load_disabled = 1
 
-########## Virtualization ##########
-
-# improve mmap ASLR effectiveness
-# default: 28
-vm.mmap_rnd_bits = 32
-# default: 8
-vm.mmap_rnd_compat_bits = 16
+# 不设 vm.mmap_rnd_bits/mmap_rnd_compat_bits(曾顶格 32/16,2026-08-23 移除):
+# Arch 出厂即 28/8(内核 6.7 曾升 32 后回退),顶格 32 破坏 LLVM sanitizers
+# (TSan 只支持 ≤30 bits;ASan/LSan 需 LLVM≥17、MSan≥18.1.3 才在 32 下正常,
+# google/sanitizers#1614/#1716、llvm-project#78354),+4 bit 熵对个人机意义小。
 
 ########## Networking ##########
 
@@ -29,11 +26,12 @@ vm.mmap_rnd_compat_bits = 16
 # default: 1000
 net.core.netdev_max_backlog = 250000
 
-# increase TCP max buffer size settable using setsockopt()
+# TCP/UDP socket 初始缓冲保持接近出厂值:default 是每个新 socket 的内存
+# 计账起点(UDP 创建即按此分配),抬 max 供 autotuning/setsockopt 使用即可
 # default: 212992
-net.core.rmem_default = 8388608
+net.core.rmem_default = 262144
 # default: 212992
-net.core.wmem_default = 8388608
+net.core.wmem_default = 262144
 # default: 212992
 net.core.rmem_max = 536870912
 # default: 212992

@@ -20,6 +20,15 @@ w /sys/module/zswap/parameters/max_pool_percent - - - - 20
 w /sys/module/zswap/parameters/zpool - - - - zsmalloc
 EOF
 
+    # zswap 按页压缩缓存,swap 预读(page-cluster>0)会把相邻未命中页整批
+    # 换入,徒增解压开销且稀释缓存命中,内核文档/Arch Wiki 对 zswap 场景
+    # 推荐 0。仅写在真实启用 zswap 的路径;MY_SWAP_SIZE=0 回退 zram 分支
+    # 不写(zram 同样受益于 0,需要时再补进 mem-zram)。
+    chroot_write_file /etc/sysctl.d/70-zswap.conf <<'EOF'
+# 由 mem-zswap 写入:zswap 已启用,关闭 swap 预读
+vm.page-cluster = 0
+EOF
+
     local size=${MY_SWAP_SIZE:-4G}
     if [[ $size == 0 ]]; then
         # 无后备 swap 设备时 zswap 永不生效 → 按约定退回 zram(自带 swap 设备)

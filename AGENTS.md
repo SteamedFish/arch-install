@@ -48,6 +48,18 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-23:sysctl 审查修正三项(全面 review 后,外部事实均经源头核实)。
+  1) 删 `vm.mmap_rnd_bits=32`/`mmap_rnd_compat_bits=16`(曾顶格):Arch 出厂
+  即 28/8(6.7 曾升 32 后回退,config.x86_64 现值核实),顶格 32 破坏 LLVM
+  sanitizers——TSan 只支持 ≤30 bits、ASan/LSan 需 LLVM≥17、MSan≥18.1.3
+  (google/sanitizers#1614/#1716、llvm-project#78354),+4 bit 熵不值。
+  2) `rmem/wmem_default` 8388608→262144:default 是每个新 socket 的内存计账
+  起点(UDP 创建即分配),8M default 放大桌面 UDP 场景 ~40×;max 保持 512MiB
+  供 autotuning/高 BDP。3) zswap 协同:mem-zswap 在真实启用 zswap 路径写
+  `/etc/sysctl.d/70-zswap.conf` 设 `vm.page-cluster = 0`(swap 预读与按页压缩
+  缓存相抵,内核文档/Arch Wiki 推荐;与 CachyOS 分支 cachyos-settings 同值,
+  Arch 分支由此补齐);MY_SWAP_SIZE=0 回退 zram 分支不写(zram 受益但超出本次
+  范围)。tests/run.sh +7(共 257)。
 - 2026-08-23:modules/sysctl.sh 新增 ARP 行为修正四条:`all/default.arp_ignore=1`
   + `all/default.arp_announce=2`。场景:多接口机器——桌面 eth+wlan 同网段
   (默认 arp_ignore=0 任意口替本机所有 IP 应答 → ARP flux/MAC flapping)、

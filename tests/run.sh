@@ -241,6 +241,18 @@ check "sysctl 设 all.arp_announce=2" "grep -q 'net.ipv4.conf.all.arp_announce =
 check "sysctl 设 default.arp_announce=2" "grep -q 'net.ipv4.conf.default.arp_announce = 2' modules/sysctl.sh"
 check "sysctl 不设 lo.arp_*(LVS-DR/VRRP 场景才需要)" "! grep -q 'conf.lo.arp_' modules/sysctl.sh"
 
+# ---- 18. sysctl 审查修正(2026-08-23)----
+# mmap_rnd_bits 顶格 32 破坏 LLVM sanitizers(TSan 仅 ≤30 bits),Arch 出厂 28
+check "sysctl 不设 mmap_rnd_bits(sanitizer 兼容)" "! grep -qE '^vm\.mmap_rnd' modules/sysctl.sh"
+# socket 初始缓冲回落,default 抬高会放大 UDP 内存计账;max 保持供 autotuning
+check "sysctl rmem_default 回落 262144" "grep -q 'net.core.rmem_default = 262144' modules/sysctl.sh"
+check "sysctl wmem_default 回落 262144" "grep -q 'net.core.wmem_default = 262144' modules/sysctl.sh"
+check "sysctl 保持 rmem_max 512MiB" "grep -q 'net.core.rmem_max = 536870912' modules/sysctl.sh"
+check "sysctl 保持 wmem_max 512MiB" "grep -q 'net.core.wmem_max = 536870912' modules/sysctl.sh"
+# zswap 开启时关闭 swap 预读,仅写在 mem-zswap 的 zswap 路径(非 sysctl 模块)
+check "mem-zswap 写 page-cluster=0(sysctl)" "grep -q 'vm.page-cluster = 0' modules/mem-zswap.sh"
+check "mem-zswap sysctl 落点 70-zswap.conf" "grep -q '70-zswap.conf' modules/mem-zswap.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
