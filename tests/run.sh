@@ -117,6 +117,9 @@ check "desktop-kde 不再含 neochat" "! grep -qw neochat modules/desktop-kde.sh
 check "desktop-kde 不再含 tokodon" "! grep -qw tokodon modules/desktop-kde.sh"
 modules_list=$(./arch-install --modules 2>/dev/null)
 check "--modules 输出含 desktop-niri" "grep -q desktop-niri <<<'$modules_list'"
+check "desktop-niri 原生 swaylock 仅非 cachyos 分支" "grep -q 'pkgs+=(swaylock)' modules/desktop-niri.sh"
+check "desktop-niri 不再无条件装原生 swaylock" "! grep -q 'swaybg swaylock' modules/desktop-niri.sh"
+check "desktop-niri 装 cachyos-niri-settings(含 swaylock-effects-git)" "grep -q 'pacman_install cachyos-niri-settings' modules/desktop-niri.sh"
 
 # ---- 8. 第二轮需求断言 ----
 check "ssh 要求默认公钥" "grep -q MY_SSH_PUBKEYS modules/ssh.sh"

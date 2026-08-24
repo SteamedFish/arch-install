@@ -48,6 +48,17 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-24:desktop-niri 的原生 swaylock 改为仅非 cachyos 安装。根因:CachyOS
+  [cachyos] 库 cachyos-niri-settings(1.0.0-5)硬依赖 swaylock-effects-git
+  (provides/conflicts swaylock)与 swaylock-fancy-git,模块原先无条件装的原生
+  swaylock 与之冲突,pacman "unresolvable package conflicts" 三次重试后构建失败
+  (hx370 niri 镜像实测踩坑;此前 KDE 构建未走该包故未暴露)。修复:mod_install
+  包列表收进数组,DISTRO!=cachyos 才 pkgs+=(swaylock);cachyos 锁屏由
+  cachyos-niri-settings 拉入的 swaylock-effects-git 提供(niri 的 swaylock
+  optdep 命中其虚拟提供),swayidle/qt6-multimedia-ffmpeg 等其余包不变。
+  tests/run.sh +3(共 278 全过):条件分支存在、旧无条件写法反向断言、
+  cachyos-niri-settings 装包断言。shellcheck 对改动零新增告警。
+
 - 2026-08-23:firewall 模块迁移 nftables(Arch 原生)。modules/firewall.sh 改为
   pacman_install nftables(装包收归模块内,符合"装包/配置/enable 同模块")+
   写 `/etc/nftables.conf` + enable `nftables.service`(ExecStart=nft -f
