@@ -204,6 +204,9 @@ main() {
     # random-seed 同理:克隆会导致多台机器共用同一随机种子(原脚本同款清理)
     rm -f "$MNT_DIR/var/lib/systemd/random-seed" "$MNT_DIR/efi/loader/random-seed"
 
+    # btrfs 根时给 /var/log/journal 设 NOCOW(非 btrfs 自动跳过;lib/disk.sh)
+    setup_journal_nocow
+
     cleanup_target
     trap - EXIT
     info "完成!目标: $TARGET"

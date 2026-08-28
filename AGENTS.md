@@ -48,6 +48,14 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-28:btrfs journal NOCOW。lib/disk.sh 新增 setup_journal_nocow():
+  findmnt 检测根文件系统类型,仅 btrfs 时 mkdir --parents + chattr +C
+  /var/log/journal——高频追加/rotate 的 journal 文件在 COW 下碎片化严重,
+  Arch Wiki btrfs 页推荐;目录属性由之后创建的文件继承(对既有文件无效,
+  安装时目录尚为空正合适),目录不存在时先创建,首启 systemd-tmpfiles 的
+  d 行会把属主/权限修正为 root:systemd-journal 2755(tmpfiles.d(5):目录
+  已存在时调整 ownership/mode)。主入口在 random-seed 清理后调用,非 btrfs
+  自动跳过(本仓根始终 btrfs,守卫为通用性保留)。tests/run.sh +3。
 - 2026-08-24:desktop-niri 的原生 swaylock 改为仅非 cachyos 安装。根因:CachyOS
   [cachyos] 库 cachyos-niri-settings(1.0.0-5)硬依赖 swaylock-effects-git
   (provides/conflicts swaylock)与 swaylock-fancy-git,模块原先无条件装的原生

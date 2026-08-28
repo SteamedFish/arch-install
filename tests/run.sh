@@ -170,6 +170,9 @@ check "growfs 补丁带行数防护" "grep -q 'fstab.growfs-new' modules/growfs.
 check "growfs 不依赖不存在的 GrowFileSystem=" "! grep -q 'GrowFileSystem=' modules/growfs.sh"
 check "wait-online 改 --any" "grep -q -- --any modules/network-networkd.sh"
 check "ESP 挂载 fmask=0077" "grep -q fmask=0077 lib/disk.sh"
+check "btrfs journal NOCOW(chattr +C)" "grep -q 'chattr +C' lib/disk.sh"
+check "journal NOCOW 仅 btrfs 根(fstype 守卫)" "grep -q 'output FSTYPE' lib/disk.sh && grep -q 'fstype != btrfs' lib/disk.sh"
+check "主入口调用 setup_journal_nocow" "grep -q 'setup_journal_nocow' arch-install"
 
 # ---- 11. 设备 profile(--device)----
 # 临时设备文件(devices/*.sh 已 gitignore,测试后删除,不污染仓库)

@@ -167,6 +167,23 @@ EOF
     fi
 }
 
+# btrfs 上的 journal NOCOW:高频追加/rotate 的日志文件在 COW 下碎片化严重,
+# Arch Wiki btrfs 页推荐 chattr +C /var/log/journal。安装时对目录 +C,
+# 之后创建的日志文件继承 NOCOW(对既有文件不生效,安装时目录尚为空正合适)。
+# 目录若不存在先创建;首启 systemd-tmpfiles 的 `d` 行会把属主/权限修正为
+# root:systemd-journal 2755(tmpfiles.d(5):目录已存在时调整 ownership/mode)。
+setup_journal_nocow() {
+    local fstype
+    fstype=$(findmnt --noheadings --output FSTYPE --target "$MNT_DIR" 2>/dev/null) || return 0
+    if [[ $fstype != btrfs ]]; then
+        info "根文件系统为 $fstype(非 btrfs),跳过 journal NOCOW"
+        return 0
+    fi
+    log "btrfs 根:chattr +C /var/log/journal(日志 NOCOW)"
+    mkdir --parents "$MNT_DIR/var/log/journal"
+    chattr +C "$MNT_DIR/var/log/journal"
+}
+
 cleanup_target() {
     # 镜像最终清一次包缓存(配合 pacman_install 的每次 -Sc,防止镜像臃肿)
     if [[ ${TARGET_TYPE:-} == image && -d $MNT_DIR/usr/bin ]]; then
