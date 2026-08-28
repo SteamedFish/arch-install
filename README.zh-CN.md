@@ -14,7 +14,7 @@
 - **设备预设**:`--device NAME` 加载 `devices/NAME.sh`(gitignored,`devices/example.sh` 为 tracked 模板),固化单台设备的 CLI 默认值(`--distro`、`--cputype`、内核变体、`--extra-modules` 等)与 `MY_*` 覆盖。叠加顺序:内置默认 → `config.sh` → 设备文件 → CLI 显式参数。`TARGET`/`--force`/`--dry-run` 不可固化;`--profile` 约定每次显式传
 - **mirrorlist 四来源**:copy 宿主机 / 官方默认 / reflector 生成 / config 文件。文件名始终与官方包一致(`mirrorlist`、`archcn-mirrorlist`、`cachyos-mirrorlist`),随时可切回包管理;`original` 模式直接安装官方包
 - **首启自动扩容**:systemd-repart,GPT 分区与 btrfs 文件系统都扩到最大
-- **btrfs journal NOCOW**:根文件系统为 btrfs 时,安装期对 `/var/log/journal` 执行 `chattr +C`,日志文件跳过 COW,避免高频追加导致碎片化
+- **btrfs 热写目录 NOCOW**:根文件系统为 btrfs 时,安装期对 `/var/log/journal` 执行 `chattr +C`;auditd 模块同款处理 `/var/log/audit`,virt 模块同款处理 `/var/lib/libvirt/images`——高频追加的日志与随机写的 VM 镜像跳过 COW,避免碎片化
 - **内存选项**:默认 `mem-zswap`(tmpfiles.d 纯配置文件 + btrfs NOCOW swapfile 后备,`MY_SWAP_SIZE` 默认 4G;`0` 退回 zram);可选 `mem-zram`(zram-generator);不想要任何 swap 就删掉该模块——两者互斥
 - **稀疏镜像**:raw 镜像为稀疏文件(宿主机实际占用 = 真实数据量),清理时 fstrim 把释放的块 punch 回文件
 - **secrets 策略**:copy(镜像)/ firstboot(物理盘)/ keyfile(git-crypt 对称密钥)/ none

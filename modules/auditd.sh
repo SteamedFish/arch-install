@@ -6,4 +6,6 @@
 mod_install() {
     pacman_install audit
     chroot_enable auditd.service
+    # audit.log 高频追加+rotate,与 journal 同理:btrfs 根时禁 COW 防碎片化
+    btrfs_nocow_dir /var/log/audit
 }

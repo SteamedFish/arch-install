@@ -48,6 +48,16 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-28:btrfs NOCOW 推广到 audit/libvirt 目录。setup_journal_nocow
+  重构为通用助手 btrfs_nocow_dir <路径>(fstype 守卫 + mkdir + chattr +C,
+  逻辑不变)。modules/auditd.sh 对 /var/log/audit、modules/virt.sh 对
+  /var/lib/libvirt/images 各加一行调用(装包/配置/enable 同模块硬约定)。
+  选型依据:对照全模块包装清单逐一排查 Arch Wiki btrfs 页 NOCOW 场景——
+  数据库类(postgres/mysql/redis/mongodb)无模块安装跳过;docker/podman
+  跳过(btrfs 存储驱动的分层机制依赖 CoW 快照,NOCOW 反而有害);
+  /var/lib/machines 无 nspawn 使用且 machined 自身会设 +C;flatpak 为
+  write-once OSTree 硬链仓、systemd-coredump 为 write-once,CoW 不受益。
+  tests/run.sh 改写 2 项(描述与断言名)+ 新增 2 项(共 283)。
 - 2026-08-28:btrfs journal NOCOW。lib/disk.sh 新增 setup_journal_nocow():
   findmnt 检测根文件系统类型,仅 btrfs 时 mkdir --parents + chattr +C
   /var/log/journal——高频追加/rotate 的 journal 文件在 COW 下碎片化严重,

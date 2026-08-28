@@ -6,4 +6,6 @@ mod_install() {
     pacman_install qemu-base qemu-img libvirt virt-install dnsmasq
     chroot_enable libvirtd.socket
     chroot_run usermod -aG libvirt "$MY_USERNAME"
+    # VM 磁盘镜像随机写频繁,Arch Wiki btrfs 页经典 NOCOW 场景
+    btrfs_nocow_dir /var/lib/libvirt/images
 }
