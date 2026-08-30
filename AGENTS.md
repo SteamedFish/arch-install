@@ -48,6 +48,32 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-08-30:dev-tools 分类重排 + 补 opencode 内置 LSP/formatter 工具。
+  分类重排(参照设计文档 §3.2 模块表):yadm 是无条件装,归 base.sh
+  (secrets 三档 copy/firstboot/keyfile 都依赖 yadm clone,原来只在
+  keyfile 分支装是缺陷——copy/firstboot 模式的 hooks 用 yadm 会缺包;
+  keyfile 分支改只补 git-crypt);pass/passff-host/git-crypt 归
+  security.sh(设计文档原话:security = pass/git-crypt/gnupg 相关);
+  dev-tools 发现 shfmt 与 cli-tools 重复,dev-tools 侧移除
+  (cli-tools 历史归属,设计文档 dev-tools 行本就含 shfmt=重复,保留 cli-tools)。
+  新增 opencode 内置 LSP/formatter 支持工具(选型依据:
+  opencode.ai/docs/lsp + /formatters 工具清单,逐包 pacman 核对官方仓库
+  core/extra 可用性)。覆盖 shell/bash/lua/python/yaml 生态、轻量不拖
+  语言运行时的 8 个——shfmt(经查 cli-tools 已含,dev-tools 不再加)、
+  bash-language-server、lua-language-server、ruff(python linter+formatter,
+  Rust 实现,与 python-black 互补)、uv(python 包管理,pip 替代)、biome
+  (js/ts/json linter+formatter,Rust 单二进制)、yaml-language-server、
+  pyright(python LSP,官方 extra 上下文确认存在);另按用户指定补 gopls
+  (→go)与 rust-analyzer(→rust-src)两个带语言工具链的 LSP。已排除:
+  typescript/ts-ls(zig/zls/dart/deno/gleam 等语言运行时)terraform(113MB)
+  haskell-language-server/julia/ktlint/dfmt;AUR-only 不装(clojure-lsp、
+  elixir-ls、kotlin-language-server、nixd、nixfmt*、ocaml-lsp/ocamlformat/
+  ormolu、oxlint extra 已下架、prettier、rubocop、standardrb、pint;
+  jdtls/terraform-ls 仅 archlinuxcn;clangd/clang-format 无独立包含在
+  clang 内)。dev-tools 按两批 pacman_install 组织(git 生态/编辑器 +
+  LSP/formatter),第二批注释指向此 CHANGELOG。tests/run.sh +9(共 303):
+  新增 dev-tools 反向断言(yadm/git-crypt/pass/passff-host/shfmt 不属于
+  dev-tools)+ security/base 归属断言,全过。
 - 2026-08-28:btrfs NOCOW 推广到 audit/libvirt 目录。setup_journal_nocow
   重构为通用助手 btrfs_nocow_dir <路径>(fstype 守卫 + mkdir + chattr +C,
   逻辑不变)。modules/auditd.sh 对 /var/log/audit、modules/virt.sh 对

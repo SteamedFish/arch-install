@@ -22,7 +22,8 @@ EOF
     chroot_write_file /etc/hostname <<<"${MY_HOSTNAME:-archlinux}"
 
     # 用户(zsh 由本模块先装,useradd 依赖它;cli-tools 里也有 zsh,--needed 不会重复)
-    pacman_install zsh
+    # yadm 无条件装:dotfiles 管理,secrets 三档(copy/firstboot/keyfile)都要 yadm clone
+    pacman_install zsh yadm
     # docker 组仅当 docker 模块启用时加入(组不存在会导致 useradd 失败):
     # docker 模块晚于 base 执行,所以这里用 groupadd -f 兜底创建;docker 包
     # 仍由 docker 模块装,那里 post-install 会重建/校验同组(sysusers.d 同源,id 恒等)
@@ -53,7 +54,8 @@ EOF
             # https 匿名 clone + git-crypt 对称密钥解锁(仓库公开时可用)
             [[ -n ${MY_DOTFILES_REPO:-} && -n ${MY_GITCRYPT_KEY_FILE:-} ]] \
                 || die "MY_SECRETS_MODE=keyfile 需要 MY_DOTFILES_REPO 与 MY_GITCRYPT_KEY_FILE"
-            pacman_install git git-crypt yadm
+            # yadm 已无条件装(base 顶部);keyfile 模式只补 git-crypt 解密(security 晚于 base,不能依赖)
+            pacman_install git git-crypt
             install -Dm600 "$MY_GITCRYPT_KEY_FILE" \
                 "${MNT_DIR}/home/${MY_USERNAME}/.gitcrypt-key"
             chroot_run chown "${MY_USERNAME}:${MY_USERNAME}" "/home/${MY_USERNAME}/.gitcrypt-key"
