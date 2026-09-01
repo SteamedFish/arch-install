@@ -345,6 +345,8 @@ check "hardware linux-tools-meta 保留(alarm 存在)" "grep -q 'linux-tools-met
 check "dev-tools opencode 有 alarm 门禁(alarm 404)" "grep -q 'pkgs+=(opencode)' modules/dev-tools.sh"
 check "dev-tools LSP/formatter 保留(alarm 存在)" "grep -q 'bash-language-server' modules/dev-tools.sh && grep -q 'biome' modules/dev-tools.sh && grep -q 'rust-analyzer' modules/dev-tools.sh"
 check "pacman mirrorlist 四模式跳过 alarm" "grep -q 'DISTRO:-arch} != alarm' modules/pacman.sh"
+check "pacman archlinuxcn 段保留(cn 有 aarch64 仓)" "grep -q 'archlinuxcn-keyring' modules/pacman.sh"
+check "cli-tools yay 保留(cn aarch64 提供)" "grep -qw yay modules/cli-tools.sh"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
