@@ -130,6 +130,12 @@ distro_kernel_packages() {
     KERNEL_PKG=linux-aarch64
     KERNEL_PKGS="linux-aarch64 linux-aarch64-headers"
 
+    # mkinitcpio 是内核包的依赖,此时尚未安装(/etc/mkinitcpio.conf 不存在,
+    # 实测 cp 报 No such file or directory);且内核安装的
+    # 90-mkinitcpio-install hook 在同事务内就用该 conf 建 initramfs——
+    # 必须先显式装 mkinitcpio 再改它的 conf
+    pacman_install mkinitcpio
+
     # 临时移除 autodetect(原因见文件头注释;备份恢复法,不做双向 sed——
     # 二次字符串拼接太脆弱)。distro_post_install 负责恢复
     cp "$MNT_DIR/etc/mkinitcpio.conf" "$MNT_DIR/etc/mkinitcpio.conf.alarm-orig"

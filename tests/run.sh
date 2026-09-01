@@ -355,6 +355,12 @@ check "pacman_install 在 alarm 下传 --disable-sandbox(qemu-user 无 Landlock)
 check "pacman_install 的 --disable-sandbox 有 DISTRO 守卫(x86 不受影响)" "! grep -q 'pacman -S --needed --noconfirm --disable-sandbox' lib/chroot.sh"
 check "alarm 的 pacman -Syu 带 --disable-sandbox(同上)" "grep -q 'pacman -Syu --noconfirm --disable-sandbox' distro/alarm.sh"
 check "alarm 目标 pacman.conf 含 DownloadUser=alpm(出厂对齐;CLI flag 不污染镜像)" "grep -q '^DownloadUser = alpm' distro/alarm.sh"
+
+# mkinitcpio 是内核包的依赖,distro_kernel_packages 被主入口调用时内核还没装
+# (实测:cp /mnt/etc/mkinitcpio.conf 报 No such file or directory);且内核安装
+# 的 90-mkinitcpio-install hook 在同事务内就会用该 conf 建 initramfs,所以
+# 必须先显式装 mkinitcpio 再 sed 它的 conf
+check "alarm 先装 mkinitcpio 再改 conf(内核依赖时序)" "grep -q 'pacman_install mkinitcpio' distro/alarm.sh"
 check "cli-tools yay 保留(cn aarch64 提供)" "grep -qw yay modules/cli-tools.sh"
 check "config 模板含 MY_ALARM_MIRROR" "grep -q MY_ALARM_MIRROR config/config.example.sh"
 check "devices 模板含 alarm 示例" "grep -q 'DISTRO=alarm' devices/example.sh"
