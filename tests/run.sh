@@ -335,6 +335,11 @@ check "根分区 GUID 按架构(ARM-64 DPS)" "grep -q 'B921B045-1DF0-41C3-AF44-4
 check "alarm XBOOTLDR 用 FAT32(无 efifs)" "grep -q 'mkfs.fat -n \"Linux Boot\"' lib/disk.sh"
 check "x86 XBOOTLDR 仍是 ext4" "grep -q 'mkfs.ext4 -F -L \"Linux Boot\"' lib/disk.sh"
 check "alarm /boot 挂载带 fmask/dmask=0077(spec §3.3)" "grep -q 'fmask=0077,dmask=0077 \"\$PART_XBOOT\"' lib/disk.sh"
+check "alarm 引导项用 /Image(PE-stub;Image.gz 不可加载)" "grep -q 'linux   /Image' lib/disk.sh"
+check "alarm 引导项 initramfs-linux.img" "grep -q 'initrd  /initramfs-linux.img' lib/disk.sh"
+check "alarm 引导项标题 Arch Linux ARM" "grep -q 'Arch Linux ARM' lib/disk.sh"
+check "alarm 引导项无 add_efi_memmap(x86-only)" "! awk '/DISTRO.*== alarm.*\)/,/^    else/' lib/disk.sh | grep -q add_efi_memmap"
+check "alarm 分支不写 fallback 条目(内核包名≠preset 名)" "! awk '/DISTRO.*== alarm.*\)/,/^    else/' lib/disk.sh | grep -q fallback"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 

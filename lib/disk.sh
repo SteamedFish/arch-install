@@ -155,36 +155,51 @@ EOF
     fi
 
     # 引导项按发行版命名:CachyOS 内核包 linux-cachyos[-变体] 产生
-    # /boot/vmlinuz-linux-cachyos[-变体] 与 initramfs-linux-cachyos[-变体][-fallback].img,
-    # 与 Arch 的 vmlinuz-linux 不同,不能复用 arch.conf
+    # /boot/vmlinuz-linux-cachyos[-变体] 与 initramfs-linux-cachyos[-变体][-fallback].img;
+    # alarm 的 linux-aarch64 产生 /boot/Image 与 initramfs-linux.img,三者不能复用
     local name title
-    if [[ ${DISTRO:-arch} == cachyos ]]; then
-        name=cachyos; title="CachyOS"
-    else
-        name=arch; title="Arch Linux"
-    fi
+    case ${DISTRO:-arch} in
+        cachyos) name=cachyos; title="CachyOS" ;;
+        alarm)   name=alarm;   title="Arch Linux ARM" ;;
+        *)       name=arch;    title="Arch Linux" ;;
+    esac
     mkdir -p "$MNT_DIR"/boot/loader/entries/
     # MY_KERNEL_PARAMS:追加的自定义内核参数(如 ttm.pages_limit 调 GTT,见 config.example.sh)
     local kparams=""
     [[ -n ${MY_KERNEL_PARAMS:-} ]] && kparams=" $MY_KERNEL_PARAMS"
-    cat >"$MNT_DIR"/boot/loader/entries/$name.conf <<EOF
+    if [[ ${DISTRO:-arch} == alarm ]]; then
+        # alarm linux-aarch64:/boot/Image 是 PE-stub(UEFI 可直接加载;Image.gz
+        # 是 gzip 包裹,systemd-boot LoadImage 不支持);initramfs 固定
+        # initramfs-linux.img(preset 仅 PRESETS=('default'),无 fallback);
+        # 无微码(CPUTYPE=generic → ucode_line 为空);不写 devicetree 行——
+        # edk2-rk3588 经 EFI config table 提供带 fix-up 的 DTB,bootloader 侧
+        # 覆盖会丢 fix-up;add_efi_memmap 是 x86-only 参数
+        cat >"$MNT_DIR"/boot/loader/entries/$name.conf <<EOF
+title   $title
+linux   /Image
+initrd  /initramfs-linux.img
+options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off rw$kparams
+EOF
+    else
+        cat >"$MNT_DIR"/boot/loader/entries/$name.conf <<EOF
 title   $title
 linux   /vmlinuz-$KERNEL_PKG
 $ucode_line
 initrd  /initramfs-$KERNEL_PKG.img
 options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw$kparams
 EOF
-    # fallback 条目只在对应 initramfs 存在时写:CachyOS 内核 preset 只有
-    # default(实测无 initramfs-*-fallback.img,cachyos-hooks 包也不提供 preset),
-    # 写了会是指向不存在文件的坏条目;Arch 官方内核 preset 有 fallback,正常生成
-    if [[ -f $MNT_DIR/boot/initramfs-$KERNEL_PKG-fallback.img ]]; then
-        cat >"$MNT_DIR"/boot/loader/entries/$name-fallback.conf <<EOF
+        # fallback 条目只在对应 initramfs 存在时写:CachyOS 内核 preset 只有
+        # default(实测无 initramfs-*-fallback.img,cachyos-hooks 包也不提供 preset),
+        # 写了会是指向不存在文件的坏条目;Arch 官方内核 preset 有 fallback,正常生成
+        if [[ -f $MNT_DIR/boot/initramfs-$KERNEL_PKG-fallback.img ]]; then
+            cat >"$MNT_DIR"/boot/loader/entries/$name-fallback.conf <<EOF
 title   $title (fallback initramfs)
 linux   /vmlinuz-$KERNEL_PKG
 $ucode_line
 initrd  /initramfs-$KERNEL_PKG-fallback.img
 options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap rw$kparams
 EOF
+        fi
     fi
 }
 
