@@ -100,7 +100,7 @@ docs/plans/           设计文档与执行计划
 存储(可选): zfs(OpenZFS 数据池,`--extra-modules zfs`;根文件系统仍为 btrfs)
 ```
 
-`[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。`[multilib]` 由 `distro_setup_repos` 无条件启用(Arch 与 CachyOS 均在 distro_setup_repos 内 uncomment),即使 `--skip-modules pacman` 也能保留 wine/steam 等 32 位依赖。`--distro alarm`(aarch64)下:hardware 不装 turbostat(x86-only)、dev-tools 不装 opencode(alarm 仓库无此包)、yay 来自 archlinuxcn 的 aarch64 仓。
+`[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。`[multilib]` 由 `distro_setup_repos` 无条件启用(Arch 与 CachyOS 均在 distro_setup_repos 内 uncomment),即使 `--skip-modules pacman` 也能保留 wine/steam 等 32 位依赖。`--distro alarm`(aarch64)下:hardware 不装 turbostat(x86-only)、dev-tools 不装 opencode/shellcheck/biome、cli-tools 不装 hwinfo/vi(alarm 各仓库与 archlinuxcn aarch64 均无,已对包数据库本地比对确认)、yay 来自 archlinuxcn 的 aarch64 仓。
 
 ## 模块接口
 

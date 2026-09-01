@@ -100,7 +100,7 @@ gpu (opt): gpu-amd gpu-nvidia gpu-intel gpgpu (OpenCL/ROCm/CUDA, `MY_GPGPU`)
 storage (opt): zfs (OpenZFS data pools, `--extra-modules zfs`; root stays btrfs)
 ```
 
-The `[archlinuxcn]` repo is always configured by the `pacman` module — packages like `rime-ice-git` and `an-anime-game-launcher-bwrap` only exist there. KDE-only apps (dolphin, kate, tokodon, …) live in `desktop-kde`; `gui-apps` holds DE-agnostic apps only. `[multilib]` is enabled unconditionally by `distro_setup_repos` (both Arch and CachyOS), so wine/steam and other 32-bit deps work even when `--skip-modules pacman` is used. Under `--distro alarm` (aarch64): `hardware` skips turbostat (x86-only), `dev-tools` skips opencode (not in the alarm repos), and `yay` comes from the archlinuxcn aarch64 repo.
+The `[archlinuxcn]` repo is always configured by the `pacman` module — packages like `rime-ice-git` and `an-anime-game-launcher-bwrap` only exist there. KDE-only apps (dolphin, kate, tokodon, …) live in `desktop-kde`; `gui-apps` holds DE-agnostic apps only. `[multilib]` is enabled unconditionally by `distro_setup_repos` (both Arch and CachyOS), so wine/steam and other 32-bit deps work even when `--skip-modules pacman` is used. Under `--distro alarm` (aarch64): `hardware` skips turbostat (x86-only), `dev-tools` skips opencode/shellcheck/biome and `cli-tools` skips hwinfo/vi (none exist in the alarm or archlinuxcn aarch64 repos — verified against the repo databases), and `yay` comes from the archlinuxcn aarch64 repo.
 
 ## Module interface
 

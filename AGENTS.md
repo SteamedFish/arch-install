@@ -50,6 +50,17 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-09-02:alarm 缺失包门禁补全(hwinfo/vi/shellcheck/biome)。构建实挂在
+  cli-tools 的 hwinfo(target not found)后,改打地鼠为全量审计:下载 alarm
+  aarch64 core/extra/alarm/aur + archlinuxcn aarch64 五库包数据库本地比对
+  server profile 全部 18 个模块的完整包清单。缺失集=cli-tools 的 hwinfo、vi
+  (x86 中心包)+ dev-tools 的 shellcheck(haskell 栈 aarch64 未构建)、biome
+  (此前"alarm 有 biome 2.3.14"的记录有误,包页与库均为 404);其余全部在仓
+  (含 dool/cpufetch/lsd/esh/dysk/lesspipe/bat-extras/onefetch 等易疑项逐一
+  核实)。门禁沿用 `[[ DISTRO == alarm ]] ||` 既有模式,同模块内独立
+  pacman_install 调用,注释注明实测依据。修正 CHANGELOG 2026-08-30 与
+  2026-09-01 条目中的 biome 归属描述。tests/run.sh +5(共 357;替换原 opencode 单项断言)。
+
 - 2026-09-02:alarm 构建期 pacman 下载沙箱修复。qemu-user 不翻译
   Landlock/seccomp syscall,而 pacman 7.1 的下载沙箱由出厂 pacman.conf 的
   `DownloadUser = alpm` 触发 → chroot 内任何带下载的 pacman 调用在模拟下
@@ -93,8 +104,9 @@ docs/plans/           设计与计划文档
      efifs 包,XBOOTLDR 用 FAT32(x86 仍 ext4);引导条目 /Image +
      initramfs-linux.img,标题 Arch Linux ARM,无 add_efi_memmap(x86-only)、
      不写 fallback 条目(内核包名≠preset 名)
-  6) 模块门禁:hardware 的 turbostat 与 dev-tools 的 opencode 在 alarm 跳过
-     (alarm 仓库 404),pacman 模块 mirrorlist 四模式跳过 alarm
+  6) 模块门禁:hardware 的 turbostat、dev-tools 的 opencode/shellcheck/biome、
+     cli-tools 的 hwinfo/vi 在 alarm 跳过(alarm 各仓库 + archlinuxcn aarch64
+     均无,包数据库比对确认),pacman 模块 mirrorlist 四模式跳过 alarm
   7) config/config.example.sh 加 MY_ALARM_MIRROR;devices/example.sh 加 alarm
      预设示例(RK3588:zram 内存方案 + ttyS2 串口 console)
   alarm 当前仅适配 server profile,desktop 未实测。tests/run.sh 共 344 项全过
