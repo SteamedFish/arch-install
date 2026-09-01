@@ -306,6 +306,25 @@ check "SSH 端口仍读 MY_SSH_PORT(与 ssh 模块一致)" "grep -q MY_SSH_PORT 
 check "不再写 /etc/iptables 规则文件" "! grep -q '/etc/iptables/' modules/firewall.sh"
 check "不再 enable iptables/ip6tables 服务" "! grep -qE '(iptables|ip6tables)\\.service' modules/firewall.sh"
 
+# ---- 21. alarm(aarch64)支持 ----
+check "distro/alarm.sh 存在" "[[ -f distro/alarm.sh ]]"
+check "alarm 定义四函数契约" "grep -q '^distro_base_packages()' distro/alarm.sh && grep -q '^distro_setup_repos()' distro/alarm.sh && grep -q '^distro_kernel_packages()' distro/alarm.sh && grep -q '^distro_post_install()' distro/alarm.sh"
+check "alarm 定义 distro_host_preflight" "grep -q '^distro_host_preflight()' distro/alarm.sh"
+check "alarm preflight 检查 binfmt qemu-aarch64" "grep -q 'binfmt_misc/qemu-aarch64' distro/alarm.sh"
+check "alarm preflight 检查 F flag" "grep -q 'flags:.*F' distro/alarm.sh"
+check "alarm 构建密钥指纹" "grep -q '68B3537F39A313B3E574D06777193F152BDBE6A6' distro/alarm.sh"
+check "alarm base_packages 显式含 archlinuxarm-keyring" "grep -q 'archlinuxarm-keyring' distro/alarm.sh"
+check "alarm base_packages 无 efifs(alarm 无此包)" "! grep -qE 'echo .*efifs' distro/alarm.sh"
+check "alarm 数据库不签名 DatabaseOptional" "grep -q 'Required DatabaseOptional' distro/alarm.sh"
+check "alarm 四仓库段 core/extra/alarm/aur" "grep -q '^\[alarm\]' distro/alarm.sh && grep -q '^\[aur\]' distro/alarm.sh"
+check "alarm 内核包 linux-aarch64" "grep -q 'KERNEL_PKG=linux-aarch64' distro/alarm.sh"
+check "alarm autodetect 备份恢复法" "grep -q 'mkinitcpio.conf.alarm-orig' distro/alarm.sh"
+check "alarm 不做 pacman-key --init(pacstrap -K 已做)" "! grep -q 'pacman-key --init' distro/alarm.sh"
+check "alarm 做 pacman-key --populate" "grep -q 'pacman-key --populate archlinuxarm' distro/alarm.sh"
+check "alarm dtb override 到 /efi/dtb/base" "grep -q '/efi/dtb/base' distro/alarm.sh"
+check "alarm 读 MY_ALARM_MIRROR" "grep -q 'MY_ALARM_MIRROR' distro/alarm.sh"
+check "alarm 无 multilib(aarch64 无此概念)" "! grep -qi multilib distro/alarm.sh"
+
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
 echo
