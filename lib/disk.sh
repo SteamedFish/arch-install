@@ -121,13 +121,7 @@ _EOF_
     # ESP 必须 fmask=0077:默认 0022 下 /efi 全员可读,bootctl 会报
     # random-seed 文件 world accessible 安全警告(systemd 官方建议 ESP root-only)
     mount -o noatime,fmask=0077,dmask=0077 "$PART_EFI" "$MNT_DIR"/efi
-    # alarm 下 /boot 为 FAT32:与 ESP 同款 fmask/dmask=0077(genfstab 记录,
-    # spec §3.3);ext4(x86)不认识 fmask,必须按 DISTRO 条件化
-    if [[ $DISTRO == alarm ]]; then
-        mount -o noatime,fmask=0077,dmask=0077 "$PART_XBOOT" "$MNT_DIR"/boot
-    else
-        mount -o noatime "$PART_XBOOT" "$MNT_DIR"/boot
-    fi
+    mount -o noatime "$PART_XBOOT" "$MNT_DIR"/boot
 }
 
 install_bootloader() {

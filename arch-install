@@ -187,7 +187,12 @@ main() {
     # install_bootloader 用,放 $() 子 shell 会丢(实测报 unbound variable)
     distro_kernel_packages
     # shellcheck disable=SC2086
-    pacman_install $KERNEL_PKGS "$CPUTYPE-ucode"
+    # alarm:CPUTYPE=generic,无微码包(arm64 无 amd/intel-ucode;generic-ucode 不存在)
+    if [[ $CPUTYPE != generic ]]; then
+        pacman_install $KERNEL_PKGS "$CPUTYPE-ucode"
+    else
+        pacman_install $KERNEL_PKGS
+    fi
     chroot_run mkinitcpio -P
     install_bootloader            # bootctl + entries(lib/disk.sh)
 

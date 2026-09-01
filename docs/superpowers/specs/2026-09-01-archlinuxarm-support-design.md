@@ -237,7 +237,7 @@ distro_kernel_packages)。另外支持可选函数 `distro_host_preflight`
 3. `install_bootloader()`:alarm 分支写
    `linux /Image` + `initrd /initramfs-linux.img`,无 ucode 行;
    去掉 x86-only 的 `add_efi_memmap`(:154/:165,alarm 不需要);
-   `options` 行其余部分(root=PARTUUID、mitigations=off、
+    `options` 行其余部分(root=UUID、mitigations=off、
    MY_KERNEL_PARAMS)不变。fallback 条目按 initramfs 存在性的
    现有逻辑自然生效(preset 无 fallback)。
 4. efifs 驱动复制段(:117-120)对 alarm 自然跳过

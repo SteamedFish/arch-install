@@ -127,8 +127,9 @@ distro_kernel_packages() {
     # 二次字符串拼接太脆弱)。distro_post_install 负责恢复
     cp "$MNT_DIR/etc/mkinitcpio.conf" "$MNT_DIR/etc/mkinitcpio.conf.alarm-orig"
     sed -i 's/^\(HOOKS=.*\)autodetect /\1/' "$MNT_DIR/etc/mkinitcpio.conf"
-    if grep '^HOOKS=' "$MNT_DIR/etc/mkinitcpio.conf" | grep -q autodetect; then
-        die "mkinitcpio.conf 移除 autodetect 失败(HOOKS 行形态变化?)"
+    if ! grep -q '^HOOKS=' "$MNT_DIR/etc/mkinitcpio.conf" \
+        || grep '^HOOKS=' "$MNT_DIR/etc/mkinitcpio.conf" | grep -q autodetect; then
+        die "mkinitcpio.conf 移除 autodetect 失败(HOOKS 行缺失或形态变化?)"
     fi
 }
 
