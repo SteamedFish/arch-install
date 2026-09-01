@@ -1,12 +1,12 @@
 # arch-install
 
-个人 Arch / CachyOS 安装器。纯 bash,模块化。自用项目,代码组织与文档以供参考。
+个人 Arch / CachyOS / Arch Linux ARM(aarch64)安装器。纯 bash,模块化。自用项目,代码组织与文档以供参考。
 
 从单文件脚本重构而来:同一功能的装包、配置、服务启用收拢在同一个模块文件内;所有个人信息(用户名、密钥、内网地址、备份目标)移到 gitignored 的 `config/`,仓库可安全公开。
 
 ## 特性
 
-- **双发行版**:Arch 与 CachyOS(内核变体与 v3/v4/znver4 仓库优化可选;keyring/mirrorlist 版本实时从 CDN 查询,也可用 `MY_CACHYOS_MIRRORLIST` 自带镜像列表)
+- **三发行版**:Arch、CachyOS(内核变体与 v3/v4/znver4 仓库优化可选;keyring/mirrorlist 版本实时从 CDN 查询,也可用 `MY_CACHYOS_MIRRORLIST` 自带镜像列表)、Arch Linux ARM(`--distro alarm`,从 x86_64 宿主交叉构建 aarch64 镜像,见下方专节)
 - **异构构建**:`--cputype amd|intel` 指定目标机 CPU(如在 Intel 机器上给 AMD 机器装)
 - **双目标**:raw 磁盘镜像(自动 losetup)或物理盘(自动识别,整盘抹掉,交互确认 + `--force` + 占用预检)
 - **模块化**:每功能一个 `modules/*.sh`,声明 requires/conflicts/before,解析器自动闭包 + 拓扑排序
@@ -41,12 +41,39 @@ sudo ./arch-install --device hx370 --target /dev/nvme0n1 --profile desktop   # �
 qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/x64/OVMF.4m.fd -drive file=system.img,format=raw
 ```
 
+## Arch Linux ARM(aarch64)
+
+`--distro alarm` 从 x86_64 宿主交叉构建 Arch Linux ARM 镜像。已验证目标:RK3588 开发板(Orange Pi 5 Plus,SPI 已刷 edk2-rk3588 UEFI 固件)。
+
+宿主要求:
+
+- `qemu-user-static` + `qemu-user-static-binfmt`,`qemu-aarch64` binfmt 规则必须**带 F(fix_binary)flag** 注册,否则 chroot 内无法执行 aarch64 二进制。宿主 preflight 在动磁盘前检查:规则缺失、未 enabled、缺 F 都会直接报错退出。
+- alarm 构建密钥(`68B3537F39A313B3E574D06777193F152BDBE6A6`)在 pacstrap 前 recv + lsign 进**宿主** pacman keyring。这是对宿主的持久修改,一次即可。
+- 构建耗时约翻倍:chroot 内每个二进制都经 qemu-user 执行,gpg 操作(`pacman-key --init`)尤其慢,属预期。
+
+`MY_ALARM_MIRROR` 指定镜像,值需含 `$arch`/`$repo` 占位符(如 `https://mirrors.ustc.edu.cn/archlinuxarm/$arch/$repo`);留空用 GeoDNS 默认 `mirror.archlinuxarm.org`。
+
+OPi5+ 设备预设示例(`devices/opi5plus.sh` gitignored,模板见 `devices/example.sh`):
+
+```bash
+sudo ./arch-install --device opi5plus --target opi5plus.img --profile server
+dd if=opi5plus.img of=/dev/sdX bs=4M status=progress conv=fsync   # 写入 SD / eMMC / NVMe
+# 首启:systemd-repart + systemd-growfs 把根分区与 btrfs 扩到整盘
+```
+
+当前限制:
+
+- alarm 仅验证过 `server` profile;`desktop` profile 未实测。
+- alarm 无 `efifs` 包,XBOOTLDR(`/boot`)用 FAT32 而非 ext4。
+- 引导条目不加 `add_efi_memmap`(x86-only 选项)。
+- 内核为 `linux-aarch64`;mkinitcpio 的 `autodetect` 安装期临时移除(qemu-user 下读到的是宿主 x86_64 的 /sys),post_install 恢复。
+
 ## 目录
 
 ```
 arch-install          主入口:参数解析、流程编排、cleanup trap
 lib/                  common(日志/依赖检查) disk(分区/挂载/bootctl) chroot(封装) modules(解析器)
-distro/               arch.sh / cachyos.sh(发行版差异:仓库、keyring、内核)
+distro/               arch.sh / cachyos.sh / alarm.sh(发行版差异:仓库、keyring、内核)
 modules/              功能模块(接口见下)
 profiles/             server.conf / desktop.conf(MODULES 预设)
 config/               config.example.sh + hooks.example.sh(tracked 模板);

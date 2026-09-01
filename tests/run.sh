@@ -350,6 +350,8 @@ check "cli-tools yay 保留(cn aarch64 提供)" "grep -qw yay modules/cli-tools.
 check "config 模板含 MY_ALARM_MIRROR" "grep -q MY_ALARM_MIRROR config/config.example.sh"
 check "devices 模板含 alarm 示例" "grep -q 'DISTRO=alarm' devices/example.sh"
 check ".gitignore 含 .tmp(bootstrap conf 临时目录)" "grep -q '^\.tmp' .gitignore"
+check "README 双语文档提及 Arch Linux ARM" "grep -q 'Arch Linux ARM' README.md && grep -q 'Arch Linux ARM' README.zh-CN.md"
+check "AGENTS 目录结构含 distro/alarm.sh" "grep -q 'distro/alarm\.sh' AGENTS.md"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 

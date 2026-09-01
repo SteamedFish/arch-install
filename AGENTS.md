@@ -14,6 +14,8 @@ lib/chroot.sh         arch-chroot 封装:chroot_run、pacman_install(含 pacman 
 lib/modules.sh        模块加载、requires 闭包、conflicts 校验、拓扑排序(mod_before)
 distro/arch.sh        distro_base_packages/setup_repos/kernel_packages/post_install
 distro/cachyos.sh     CachyOS 实现:keyring、v3/v4/znver4 检测、内核变体
+distro/alarm.sh       Arch Linux ARM(aarch64)实现:binfmt 宿主预检、bootstrap
+                      pacman.conf、linux-aarch64、DTB 拷 ESP
 modules/*.sh          功能模块,接口见 plan 文档
 profiles/*.conf       MODULES=(...) 预设(server.conf desktop.conf)
 config/config.example.sh  tracked 模板(全部 MY_* 变量)
@@ -48,6 +50,33 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-09-01:新增 distro/alarm.sh,Arch Linux ARM(aarch64)支持;已验证目标
+  RK3588/Orange Pi 5 Plus(SPI 刷 edk2-rk3588 UEFI 固件),设计文档
+  docs/superpowers/specs/2026-09-01-archlinuxarm-support-design.md。要点:
+  1) 跨架构 bootstrap:宿主装 qemu-user-static + qemu-user-static-binfmt,
+     distro_host_preflight 检查 binfmt_misc/qemu-aarch64 已注册、enabled、带 F
+     (fix_binary)flag,否则动磁盘前 die;alarm 构建密钥
+     68B3537F39A313B3E574D06777193F152BDBE6A6 在 pacstrap 前 recv+lsign 进
+     宿主 pacman keyring(对宿主的持久修改);pacstrap 用 .tmp/pacstrap/ 下
+     生成的 bootstrap pacman.conf(PACSTRAP_CONF,-C/-M;-K 保留,不做
+     pacman-key --init)
+  2) distro_setup_repos:MY_ALARM_MIRROR(空=GeoDNS 默认
+     mirror.archlinuxarm.org,值含 $arch/$repo 占位符)、alarm 数据库
+     SigLevel 修正为 Required DatabaseOptional(库不签名)、chroot 内
+     pacman-key --populate archlinuxarm
+  3) 内核 linux-aarch64;mkinitcpio autodetect 安装期临时移除(qemu-user 下
+     读到的是宿主 x86_64 /sys,autodetect 结果不可信),post_install 恢复
+  4) DTB 拷 ESP /efi/dtb/base/(edk2-rk3588 从该路径取 DTB)
+  5) lib/disk.sh 按架构分支:根分区 GUID B921B045(ARM-64 DPS);alarm 无
+     efifs 包,XBOOTLDR 用 FAT32(x86 仍 ext4);引导条目 /Image +
+     initramfs-linux.img,标题 Arch Linux ARM,无 add_efi_memmap(x86-only)、
+     不写 fallback 条目(内核包名≠preset 名)
+  6) 模块门禁:hardware 的 turbostat 与 dev-tools 的 opencode 在 alarm 跳过
+     (alarm 仓库 404),pacman 模块 mirrorlist 四模式跳过 alarm
+  7) config/config.example.sh 加 MY_ALARM_MIRROR;devices/example.sh 加 alarm
+     预设示例(RK3588:zram 内存方案 + ttyS2 串口 console)
+  alarm 当前仅验证 server profile,desktop 未实测。tests/run.sh 共 344 项全过
+  (本节含文档同步新增 2 项)。
 - 2026-08-30:dev-tools 分类重排 + 补 opencode 内置 LSP/formatter 工具。
   分类重排(参照设计文档 §3.2 模块表):yadm 是无条件装,归 base.sh
   (secrets 三档 copy/firstboot/keyfile 都依赖 yadm clone,原来只在
@@ -71,7 +100,8 @@ docs/plans/           设计与计划文档
   ormolu、oxlint extra 已下架、prettier、rubocop、standardrb、pint;
   jdtls/terraform-ls 仅 archlinuxcn;clangd/clang-format 无独立包含在
   clang 内)。dev-tools 按两批 pacman_install 组织(git 生态/编辑器 +
-  LSP/formatter),第二批注释指向此 CHANGELOG。tests/run.sh +9(共 303):
+  LSP/formatter),第二批注释指向此 CHANGELOG。tests/run.sh +9(当时记 303;
+  2026-09-01 alarm 落地后实测共 342):
   新增 dev-tools 反向断言(yadm/git-crypt/pass/passff-host/shfmt 不属于
   dev-tools)+ security/base 归属断言,全过。
 - 2026-08-28:btrfs NOCOW 推广到 audit/libvirt 目录。setup_journal_nocow
