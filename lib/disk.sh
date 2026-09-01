@@ -77,19 +77,34 @@ partition_and_mount() {
     local dev=$TARGET
     [[ $TARGET_TYPE == image ]] && dev=$LOOP_DEV
     log "分区: $dev"
+    # 根分区 GUID 按架构(Discoverable Partitions Spec):aarch64 用
+    # "Linux root (ARM-64)";systemd-repart 的 Type=root 按架构自动匹配,
+    # modules/growfs.sh 无需跟着变
+    local root_guid=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709 root_name="Linux root (x86-64)"
+    if [[ $DISTRO == alarm ]]; then
+        root_guid=B921B045-1DF0-41C3-AF44-4C6F280D3FAE
+        root_name="Linux root (ARM-64)"
+    fi
     sfdisk --no-reread "$dev" <<_EOF_
 label: gpt
 unit: sectors
 size=256MiB, name="EFI System", type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B
 size=1GiB, name="Linux extended boot", attrs="LegacyBIOSBootable", type=BC13C2FF-59E6-4262-A352-B275FD6F7172
-name="Linux root (x86-64)", type=4F68BCE3-E8CD-4DB1-96E7-FBCAF984B709
+name="$root_name", type=$root_guid
 _EOF_
     partprobe "$dev" 2>/dev/null || true
     sleep 1
 
     log "格式化"
     mkfs.fat -n "EFI" -F 32 "$PART_EFI" >/dev/null
-    mkfs.ext4 -F -L "Linux Boot" "$PART_XBOOT" >/dev/null
+    # XBOOTLDR:alarm 仓库无 efifs(包页 404),systemd-boot 在 aarch64 只能读
+    # FAT32 → alarm 下 /boot 用 FAT32;x86 维持 ext4(efifs 驱动复制段对 alarm
+    # 自然跳过:目录不存在)
+    if [[ $DISTRO == alarm ]]; then
+        mkfs.fat -n "Linux Boot" -F 32 "$PART_XBOOT" >/dev/null
+    else
+        mkfs.ext4 -F -L "Linux Boot" "$PART_XBOOT" >/dev/null
+    fi
     mkfs.btrfs -f -L "Linux Root" "$PART_ROOT" >/dev/null
 
     mkdir -p "$MNT_DIR"

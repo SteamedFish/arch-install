@@ -331,6 +331,9 @@ check "alarm 镜像末尾提示 dd 而非 qemu-x86" "grep -q 'alarm(aarch64)镜�
 check "dry-run alarm" "./arch-install --target /tmp/x.img --profile server --distro alarm --dry-run >/dev/null 2>&1"
 check "base.sh 支持 PACSTRAP_CONF(-C/-M)" "grep -q 'PACSTRAP_CONF' modules/base.sh"
 check "pacstrap -K 保留不变" "grep -q 'pacstrap_args=(-K)' modules/base.sh"
+check "根分区 GUID 按架构(ARM-64 DPS)" "grep -q 'B921B045-1DF0-41C3-AF44-4C6F280D3FAE' lib/disk.sh"
+check "alarm XBOOTLDR 用 FAT32(无 efifs)" "grep -q 'mkfs.fat -n \"Linux Boot\"' lib/disk.sh"
+check "x86 XBOOTLDR 仍是 ext4" "grep -q 'mkfs.ext4 -F -L \"Linux Boot\"' lib/disk.sh"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 

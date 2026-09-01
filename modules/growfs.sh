@@ -2,7 +2,8 @@
 # modules/growfs.sh — 首启自动扩容根分区 + 根文件系统(需求 8)
 # 两段机制,各自独立、均幂等:
 #  1) 分区:systemd-repart 读 /etc/repart.d/*.conf,Type=root 是本架构 DPS 根分区
-#     (4F68BCE3-... Linux root x86-64)的别名,与 p3 分区类型 GUID 匹配,首启扩分区
+#     (按架构自动解析:x86-64↔4F68…、ARM-64↔B921…,lib/disk.sh 分区 GUID 同口径)
+#     的别名,与 p3 分区类型 GUID 匹配,首启扩分区
 #     (已扩满则日志 "No changes")。Type 只能用 DPS 名称——写成 linux-root 会被拒
 #     ("Failed to parse partition type",qemu 实测)。
 #  2) 文件系统:fstab 根行补 x-systemd.growfs → 首启 fstab-generator 生成
