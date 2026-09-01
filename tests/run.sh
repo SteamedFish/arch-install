@@ -329,6 +329,8 @@ check "alarm 强制 CPUTYPE=generic" "grep -q 'CPUTYPE=generic' arch-install"
 check "主入口守卫调用 distro_host_preflight" "grep -q 'declare -F distro_host_preflight' arch-install"
 check "alarm 镜像末尾提示 dd 而非 qemu-x86" "grep -q 'alarm(aarch64)镜像' arch-install"
 check "dry-run alarm" "./arch-install --target /tmp/x.img --profile server --distro alarm --dry-run >/dev/null 2>&1"
+check "base.sh 支持 PACSTRAP_CONF(-C/-M)" "grep -q 'PACSTRAP_CONF' modules/base.sh"
+check "pacstrap -K 保留不变" "grep -q 'pacstrap_args=(-K)' modules/base.sh"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 

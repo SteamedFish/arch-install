@@ -5,8 +5,14 @@
 
 mod_install() {
     log "pacstrap 基础系统"
+    # alarm(aarch64)跨架构:pacstrap 无 --arch,用 -C 指定 bootstrap pacman.conf
+    # (Architecture=aarch64,由 distro/alarm.sh 的 host_preflight 生成)+ -M
+    # 跳过宿主 mirrorlist 拷贝;-K 不变(pacstrap 源码:安装期验签走宿主
+    # keyring,-K 只对目标 keyring 做 --init)
+    local -a pacstrap_args=(-K)
+    [[ -n ${PACSTRAP_CONF:-} ]] && pacstrap_args+=(-C "$PACSTRAP_CONF" -M)
     # shellcheck disable=SC2046
-    pacstrap -K "$MNT_DIR" $(distro_base_packages)
+    pacstrap "${pacstrap_args[@]}" "$MNT_DIR" $(distro_base_packages)
 
     log "生成 fstab"
     genfstab -U "$MNT_DIR" >>"${MNT_DIR}/etc/fstab"
