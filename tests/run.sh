@@ -347,6 +347,9 @@ check "dev-tools LSP/formatter 保留(alarm 存在)" "grep -q 'bash-language-ser
 check "pacman mirrorlist 四模式跳过 alarm" "grep -q 'DISTRO:-arch} != alarm' modules/pacman.sh"
 check "pacman archlinuxcn 段保留(cn 有 aarch64 仓)" "grep -q 'archlinuxcn-keyring' modules/pacman.sh"
 check "cli-tools yay 保留(cn aarch64 提供)" "grep -qw yay modules/cli-tools.sh"
+check "config 模板含 MY_ALARM_MIRROR" "grep -q MY_ALARM_MIRROR config/config.example.sh"
+check "devices 模板含 alarm 示例" "grep -q 'DISTRO=alarm' devices/example.sh"
+check ".gitignore 含 .tmp(bootstrap conf 临时目录)" "grep -q '^\.tmp' .gitignore"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 
