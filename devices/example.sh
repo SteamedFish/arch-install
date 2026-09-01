@@ -15,6 +15,12 @@
 #DISTRO=cachyos                  # arch | cachyos
 #CACHYOS_KERNEL=bore             # default|bore|bmq|lts|server|hardened|rt-bore|eevdf|rc
 #CACHYOS_REPO=znver4             # auto|v3|v4|znver4
+#DISTRO=alarm                    # arch | cachyos | alarm(Arch Linux ARM aarch64)
+#  alarm 设备常见配套(以 RK3588/OPi5+ 为例):
+#MY_ALARM_MIRROR="https://mirrors.ustc.edu.cn/archlinuxarm/\$arch/\$repo"
+#SKIP_MODULES=mem-zswap          # 内存方案改 zram(不建 swapfile)
+#EXTRA_MODULES=mem-zram
+#MY_KERNEL_PARAMS="console=ttyS2,1500000"   # RK3588 串口 console(按设备改)
 
 # ---- 硬件 ----
 #CPUTYPE=amd                     # auto|amd|intel(异构构建时固定目标机 CPU)

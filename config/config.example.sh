@@ -44,3 +44,7 @@ MY_KERNEL_PARAMS=""               # 追加内核参数,写到 boot entry options
 MY_CACHYOS_MIRRORLIST=""          # 自有 cachyos mirrorlist 文件路径;空则装官方 cachyos-(v3/v4-)mirrorlist 包
 MY_CACHYOS_CDN=""                 # keyring/mirrorlist 包的 CDN 基址;空则 cdn77。中国大陆可用
                                   # https://mirrors.ustc.edu.cn/cachyos/repo/x86_64/cachyos
+
+# ---- Arch Linux ARM(仅 --distro alarm)----
+MY_ALARM_MIRROR=""                # alarm 镜像;空=geo 默认 mirror.archlinuxarm.org。
+                                  # 中国大陆建议 https://mirrors.ustc.edu.cn/archlinuxarm/$arch/$repo
