@@ -345,6 +345,16 @@ check "dev-tools opencode 有 alarm 门禁(alarm 404)" "grep -q 'pkgs+=(opencode
 check "dev-tools LSP/formatter 保留(alarm 存在)" "grep -q 'bash-language-server' modules/dev-tools.sh && grep -q 'biome' modules/dev-tools.sh && grep -q 'rust-analyzer' modules/dev-tools.sh"
 check "pacman mirrorlist 四模式跳过 alarm" "grep -q 'DISTRO:-arch} != alarm' modules/pacman.sh"
 check "pacman archlinuxcn 段保留(cn 有 aarch64 仓)" "grep -q 'archlinuxcn-keyring' modules/pacman.sh"
+
+# qemu-user 模拟下 pacman 7.1 下载沙箱必死(Landlock/seccomp syscall 不被
+# qemu-user 翻译;触发项是出厂 pacman.conf 的 DownloadUser=alpm)→ alarm 的
+# chroot pacman 一律带 --disable-sandbox;镜像内恢复出厂等价配置
+# (repro: loop+btrfs chroot 内出厂 conf 下载必现,--disable-sandbox 或
+# 注释 DownloadUser 即恢复;x86 原生 chroot 不受影响)
+check "pacman_install 在 alarm 下传 --disable-sandbox(qemu-user 无 Landlock)" "grep -q 'DISTRO:-arch} == alarm.*&& sandbox' lib/chroot.sh"
+check "pacman_install 的 --disable-sandbox 有 DISTRO 守卫(x86 不受影响)" "! grep -q 'pacman -S --needed --noconfirm --disable-sandbox' lib/chroot.sh"
+check "alarm 的 pacman -Syu 带 --disable-sandbox(同上)" "grep -q 'pacman -Syu --noconfirm --disable-sandbox' distro/alarm.sh"
+check "alarm 目标 pacman.conf 含 DownloadUser=alpm(出厂对齐;CLI flag 不污染镜像)" "grep -q '^DownloadUser = alpm' distro/alarm.sh"
 check "cli-tools yay 保留(cn aarch64 提供)" "grep -qw yay modules/cli-tools.sh"
 check "config 模板含 MY_ALARM_MIRROR" "grep -q MY_ALARM_MIRROR config/config.example.sh"
 check "devices 模板含 alarm 示例" "grep -q 'DISTRO=alarm' devices/example.sh"

@@ -55,9 +55,17 @@ require_emulation_deps() {
 pacman_install() {
     # 网络镜像偶有 10 秒无字节被 pacman 中止(实测 NJU/USTC 均出现),
     # --needed 保证重试幂等;真实错误(如包不存在)重试 3 次后照旧失败
+    # alarm(aarch64)经 qemu-user 模拟时 pacman 7.1 下载沙箱必死:qemu-user
+    # 不翻译 Landlock/seccomp syscall,而沙箱由出厂 pacman.conf 的
+    # DownloadUser=alpm 触发(loop+btrfs chroot 实测必现)。x86 原生 chroot
+    # 无此问题。--disable-sandbox 是 CLI flag,不写入目标配置,镜像内仍是
+    # 出厂对齐的 DownloadUser=alpm(真机内核有 Landlock,沙箱正常工作)。
+    # CHROOT_EMULATE(v2 宿主建 v3 镜像)大概率同病,该路径未实测,不动
+    local -a sandbox=()
+    [[ ${DISTRO:-arch} == alarm ]] && sandbox=(--disable-sandbox)
     local try
     for try in 1 2 3; do
-        chroot_run pacman -S --needed --noconfirm "$@" && break
+        chroot_run pacman -S --needed --noconfirm "${sandbox[@]}" "$@" && break
         [[ $try -lt 3 ]] || return 1
         warn "pacman -S 失败(第 $try/3 次),5s 后重试"
         sleep 5

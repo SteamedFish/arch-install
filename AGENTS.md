@@ -50,6 +50,18 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-09-02:alarm 构建期 pacman 下载沙箱修复。qemu-user 不翻译
+  Landlock/seccomp syscall,而 pacman 7.1 的下载沙箱由出厂 pacman.conf 的
+  `DownloadUser = alpm` 触发 → chroot 内任何带下载的 pacman 调用在模拟下
+  必失败("restricting filesystem access failed because Landlock is not
+  supported by the kernel" + "switching to sandbox user 'alpm' failed";
+  loop+btrfs chroot 最小复现双向验证:--disable-sandbox 或注释
+  DownloadUser 即恢复)。修复:lib/chroot.sh pacman_install 与
+  distro/alarm.sh 的 -Syu 在 DISTRO=alarm 时带 --disable-sandbox
+  (CLI flag,不写入目标配置);alarm 覆写的 /etc/pacman.conf 显式保留
+  DownloadUser = alpm 与出厂对齐(真机 aarch64 原生内核有 Landlock,
+  沙箱正常)。x86 原生 chroot 不受影响;CHROOT_EMULATE(v2 建 v3)大概率
+  同病,该路径未实测,留注释不动。tests/run.sh +3(共 348)。
 - 2026-09-01:新增 distro/alarm.sh,Arch Linux ARM(aarch64)支持;目标
   RK3588/Orange Pi 5 Plus(SPI 刷 edk2-rk3588 UEFI 固件;镜像构建与真机
   启动验证为后续任务),设计文档

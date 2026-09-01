@@ -103,6 +103,11 @@ Architecture = aarch64
 CheckSpace
 SigLevel = Required DatabaseOptional
 ParallelDownloads = 5
+# 与 alarm 出厂 pacman.conf 对齐(真机 aarch64 原生内核支持 Landlock,
+# 下载沙箱正常工作);构建期 qemu-user 下沙箱不可用,由 chroot 内 pacman
+# 调用的 --disable-sandbox CLI flag 兜底(见 lib/chroot.sh pacman_install
+# 与下方 -Syu),不污染此配置
+DownloadUser = alpm
 Color
 UseSyslog
 VerbosePkgLists
@@ -114,7 +119,9 @@ EOF
     # --populate 导入 archlinuxarm-keyring 包的官方 keyring(master×3 + 构建密钥)
     # 并 lsign。qemu-user 下 gpg 明显变慢(分钟级),属预期
     chroot_run pacman-key --populate archlinuxarm
-    chroot_run pacman -Syu --noconfirm
+    # --disable-sandbox:qemu-user 不翻译 Landlock/seccomp syscall,pacman 7.1
+    # 下载沙箱(由 DownloadUser=alpm 触发)在模拟 chroot 内必失败(实测)
+    chroot_run pacman -Syu --noconfirm --disable-sandbox
 }
 
 distro_kernel_packages() {
