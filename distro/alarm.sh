@@ -106,8 +106,9 @@ ParallelDownloads = 5
 # 与 alarm 出厂 pacman.conf 对齐(真机 aarch64 原生内核支持 Landlock,
 # 下载沙箱正常工作);构建期 qemu-user 下沙箱不可用,由 chroot 内 pacman
 # 调用的 --disable-sandbox CLI flag 兜底(见 lib/chroot.sh pacman_install
-# 与下方 -Syu),不污染此配置
-DownloadUser = alpm
+# 与下方 -Syu),不污染此配置。DownloadUser 构建期保持注释(qemu-user 下
+# 沙箱必死,见 base.sh 同款处理);distro_post_install 恢复为出厂生效值
+#DownloadUser = alpm
 Color
 UseSyslog
 VerbosePkgLists
@@ -151,6 +152,14 @@ distro_post_install() {
     #    内核更新在真实 RK3588 硬件上跑 mkinitcpio,autodetect 正常裁剪。
     #    中间无其他模块改 mkinitcpio.conf(全仓 grep 核实),整文件恢复安全
     mv "$MNT_DIR/etc/mkinitcpio.conf.alarm-orig" "$MNT_DIR/etc/mkinitcpio.conf"
+
+    # 1.5) 恢复 DownloadUser=alpm(构建期禁用的下载沙箱;base.sh 注释出厂
+    #    conf + 本文件 setup_repos 的覆写 conf 注释,两处都已被后续覆盖/重写,
+    #    这里只需处理最终生效的这份。真机 aarch64 原生内核有 Landlock,
+    #    沙箱正常工作,与 alarm 出厂 conf 对齐)
+    sed -i 's/^#DownloadUser = alpm/DownloadUser = alpm/' "$MNT_DIR/etc/pacman.conf"
+    grep -q '^DownloadUser = alpm' "$MNT_DIR/etc/pacman.conf" \
+        || die "恢复 DownloadUser=alpm 失败(pacman.conf 形态变化?)"
 
     # 2) DTB override 通道:内核包自带 dtb → edk2-rk3588 约定路径 /efi/dtb/base/
     #    (固件优先加载它再做 fix-up)。缺文件 warn 不 die:固件经 EFI config

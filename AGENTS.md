@@ -62,6 +62,15 @@ docs/plans/           设计与计划文档
   DownloadUser = alpm 与出厂对齐(真机 aarch64 原生内核有 Landlock,
   沙箱正常)。x86 原生 chroot 不受影响;CHROOT_EMULATE(v2 建 v3)大概率
   同病,该路径未实测,留注释不动。tests/run.sh +3(共 348)。
+- 2026-09-02:同问题第二轮:第一次修复只加了 CLI flag,漏了
+  modules/pacman.sh:62 archlinuxcn 的直连 `pacman -Syu`(不经过
+  pacman_install)→ 补系统性修复:base.sh 在 pacstrap 后即注释出厂 conf
+  的 DownloadUser(alarm 分支),alarm.sh 覆写 conf 同保持注释,
+  distro_post_install 恢复为出厂生效值并带验证(同 autodetect 的
+  安装期临时移除模式)。另确认 alarm 的 keyring 包装包时自带
+  pacman-key --populate .install 钩子(archlinux.gpg×5 +
+  archlinuxarm.gpg×1 lsign),distro_setup_repos 的 --populate 为幂等
+  防御保留。tests/run.sh +3(共 352)。
 - 2026-09-01:新增 distro/alarm.sh,Arch Linux ARM(aarch64)支持;目标
   RK3588/Orange Pi 5 Plus(SPI 刷 edk2-rk3588 UEFI 固件;镜像构建与真机
   启动验证为后续任务),设计文档

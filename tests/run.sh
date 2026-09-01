@@ -354,7 +354,10 @@ check "pacman archlinuxcn 段保留(cn 有 aarch64 仓)" "grep -q 'archlinuxcn-k
 check "pacman_install 在 alarm 下传 --disable-sandbox(qemu-user 无 Landlock)" "grep -q 'DISTRO:-arch} == alarm.*&& sandbox' lib/chroot.sh"
 check "pacman_install 的 --disable-sandbox 有 DISTRO 守卫(x86 不受影响)" "! grep -q 'pacman -S --needed --noconfirm --disable-sandbox' lib/chroot.sh"
 check "alarm 的 pacman -Syu 带 --disable-sandbox(同上)" "grep -q 'pacman -Syu --noconfirm --disable-sandbox' distro/alarm.sh"
-check "alarm 目标 pacman.conf 含 DownloadUser=alpm(出厂对齐;CLI flag 不污染镜像)" "grep -q '^DownloadUser = alpm' distro/alarm.sh"
+check "alarm 构建期 DownloadUser 注释掉(qemu-user 沙箱必死的系统性规避)" "grep -q '^#DownloadUser = alpm' distro/alarm.sh"
+check "alarm post_install 恢复 DownloadUser(真机 Landlock 正常)" "grep -q 's/^#DownloadUser = alpm/DownloadUser = alpm/' distro/alarm.sh"
+check "base.sh pacstrap 后注释出厂 conf 的 DownloadUser(alarm;覆盖 base 模块窗口)" "grep -q 's/^DownloadUser = alpm/#DownloadUser = alpm/' modules/base.sh"
+check "x86 路径不碰 DownloadUser" "! grep -q 'DownloadUser' modules/base.sh lib/disk.sh distro/arch.sh distro/cachyos.sh 2>/dev/null || ! grep -q 's/^DownloadUser' distro/arch.sh distro/cachyos.sh"
 
 # mkinitcpio 是内核包的依赖,distro_kernel_packages 被主入口调用时内核还没装
 # (实测:cp /mnt/etc/mkinitcpio.conf 报 No such file or directory);且内核安装
