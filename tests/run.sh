@@ -324,6 +324,11 @@ check "alarm 做 pacman-key --populate" "grep -q 'pacman-key --populate archlinu
 check "alarm dtb override 到 /efi/dtb/base" "grep -q '/efi/dtb/base' distro/alarm.sh"
 check "alarm 读 MY_ALARM_MIRROR" "grep -q 'MY_ALARM_MIRROR' distro/alarm.sh"
 check "alarm 无 multilib(aarch64 无此概念)" "! grep -qi multilib distro/alarm.sh"
+check "--distro 白名单含 alarm" "grep -q 'DISTRO == alarm' arch-install"
+check "alarm 强制 CPUTYPE=generic" "grep -q 'CPUTYPE=generic' arch-install"
+check "主入口守卫调用 distro_host_preflight" "grep -q 'declare -F distro_host_preflight' arch-install"
+check "alarm 镜像末尾提示 dd 而非 qemu-x86" "grep -q 'alarm(aarch64)镜像' arch-install"
+check "dry-run alarm" "./arch-install --target /tmp/x.img --profile server --distro alarm --dry-run >/dev/null 2>&1"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 

@@ -30,7 +30,7 @@ usage() {
 常用选项:
   --size SIZE            镜像大小(默认 32G;mem-zswap 默认带 4G swapfile)
   --profile NAME         server | desktop(默认 server)
-  --distro NAME          arch | cachyos(默认 arch)
+  --distro NAME          arch | cachyos | alarm(默认 arch;alarm=Arch Linux ARM aarch64)
   --desktop NAME         niri | kde(仅 desktop,默认 niri)
   --cachyos-kernel NAME  default|bore|bmq|lts|server|hardened|rt-bore|eevdf|rc
   --cachyos-repo NAME    auto|v3|v4|znver4(默认 auto,自动检测)
@@ -94,7 +94,7 @@ parse_args() {
     done
     [[ -n $TARGET ]] || { usage; die "必须指定 --target"; }
     [[ -f $SCRIPT_DIR/profiles/$PROFILE.conf ]] || die "未知 profile: $PROFILE"
-    [[ $DISTRO == arch || $DISTRO == cachyos ]] || die "未知 distro: $DISTRO"
+    [[ $DISTRO == arch || $DISTRO == cachyos || $DISTRO == alarm ]] || die "未知 distro: $DISTRO"
     [[ $CPUTYPE =~ ^(auto|amd|intel)$ ]] || die "未知 cputype: $CPUTYPE(auto|amd|intel)"
 }
 
@@ -156,6 +156,10 @@ main() {
 
     # --cputype 覆盖宿主机检测(在 Intel 机器上给 AMD 机器装时必传);
     # 影响微码包、cachyos znver4 检测与引导项 initrd 行
+    # alarm(aarch64)没有 amd/intel 微码概念:强制 generic,跳过
+    # detect_cputype(/sys 解析只对 x86 有意义)与后续 $CPUTYPE-ucode 安装;
+    # lib/disk.sh 引导项的 generic 逃逸口已有
+    [[ $DISTRO == alarm ]] && CPUTYPE=generic
     [[ $CPUTYPE == auto ]] && CPUTYPE=$(detect_cputype)
 
     detect_target_type            # → TARGET_TYPE=disk|image
@@ -167,6 +171,10 @@ main() {
     # 跨等级构建预检(仅 cachyos 有定义):目标等级高于宿主 CPU 时启用
     # qemu-user 模拟;缺依赖在此失败,不留下半成品镜像
     declare -F _cachyos_preflight_emulation &>/dev/null && _cachyos_preflight_emulation
+
+    # distro 级宿主机预检(仅 alarm 定义):binfmt_misc 注册检查 +
+    # alarm 构建密钥导入宿主 keyring + 生成 bootstrap pacman.conf
+    declare -F distro_host_preflight &>/dev/null && distro_host_preflight
 
     prepare_target                # 镜像:qemu-img+losetup;物理盘:占用检查+确认
     trap cleanup_target EXIT      # 失败/完成都 umount + losetup -d
@@ -212,7 +220,11 @@ main() {
     trap - EXIT
     info "完成!目标: $TARGET"
     if [[ $TARGET_TYPE == image ]]; then
-        info "qemu 验证: qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/x64/OVMF.4m.fd -drive file=$TARGET,format=raw"
+        if [[ $DISTRO == alarm ]]; then
+            info "alarm(aarch64)镜像不能用 qemu-system-x86_64 验证:dd 到 SD/eMMC/NVMe 上真机启动(需 edk2 固件;目标介质不得残留 U-Boot)"
+        else
+            info "qemu 验证: qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/x64/OVMF.4m.fd -drive file=$TARGET,format=raw"
+        fi
     fi
 }
 
