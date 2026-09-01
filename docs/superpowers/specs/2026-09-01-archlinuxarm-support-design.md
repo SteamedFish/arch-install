@@ -39,6 +39,13 @@ zram 生效。验收方式:只做真机实测,不做 qemu aarch64 模拟。
 - `pacstrap` 任何版本都没有 `--arch`。跨架构做法是
   `pacstrap -C <自定义 pacman.conf> -M`(自定义 conf 里写
   `Architecture = aarch64`,-M 跳过宿主 mirrorlist 拷贝)。
+  **pacstrap 源码实测**(/usr/bin/pacstrap:208-218):`-K` 在目标
+  `pacman-key --init`(仅本地 master key);安装期的包验签由
+  **宿主 keyring** 完成(pacman 调用不传 --gpgdir;旁证:x86 的
+  `pacstrap -K` 在空目标 keyring 下构建全部成功)。因此 alarm 与 x86
+  一样保留 `-K`,只要宿主 keyring 已 lsign alarm 构建密钥;目标系统
+  keyring 由 distro_setup_repos 的 `pacman-key --populate archlinuxarm`
+  补齐(--init 已由 pacstrap -K 做过,不重复执行)。
 - Arch Linux ARM 软件仓库**数据库不签名**(上游设计如此,非镜像问题),
   pacman.conf 需要 `SigLevel = Required DatabaseOptional`。
 - alarm keyring:master keys 指纹
@@ -46,7 +53,8 @@ zram 生效。验收方式:只做真机实测,不做 qemu aarch64 模拟。
   `9D22B7BB678DC056B1F7723CB55C5315DCD9EE1A` /
   `69DD6C8FD314223E14362848BF7EEF7A9C6B5765`;
   构建密钥(签名所有包)`68B3537F39A313B3E574D06777193F152BDBE6A6`。
-  `archlinuxarm-keyring` 是 any 架构包,随 alarm base 组进入 pacstrap。
+  `archlinuxarm-keyring` 是 any 架构包;**alarm.sh 将其显式列入
+  distro_base_packages**,不赌 base 组的传递依赖。
 - 宿主 pacman 验证 alarm 包前,需先在宿主 keyring
   `pacman-key --recv-keys` + `--lsign-key` 构建密钥
   (与 cachyos.sh 既有手法相同)。**这是对宿主 keyring 的持久改动,README
@@ -118,17 +126,20 @@ zram 生效。验收方式:只做真机实测,不做 qemu aarch64 模拟。
 - `stdout-path = serial2:1500000n8` → 设备预设建议
   `MY_KERNEL_PARAMS="console=ttyS2,1500000"`。其余无需特殊 cmdline。
 
-### 3.7 包可用性(archlinuxarm.org/packages/aarch64/ 实测)
+### 3.7 包可用性(archlinuxarm.org/packages/aarch64/ 实测,2026-09-01 复核)
 | 有 | 无 |
 |---|---|
 | biome 2.3.14, ruff 0.15.20, uv 0.11.30 | opencode (404) |
 | gopls 0.23.0, rust-analyzer 20260608 | efifs (404) |
-| lua-language-server, bash-language-server, iptables-nft, zram-generator | turbostat(x86-only) |
+| lua-language-server, bash-language-server, yaml-language-server | turbostat (404, x86-only) |
+| iptables-nft, zram-generator, linux-aarch64 | yay (404,官方仓) |
+| linux-tools-meta, dmidecode, smartmontools, cpupower (均 200) | |
 
-- `yay`、`yaml-language-server` 当时未确认,实施时核实;yay 由
-  archlinuxcn aarch64 提供(用户确认 archlinuxcn 支持 archlinuxarm,
+- **yay 由 archlinuxcn aarch64 提供**(用户确认 cn 支持 archlinuxarm;
+  repo.archlinuxcn.org/aarch64/ 实测有 yay-13.0.0-1)。
   `Server = https://repo.archlinuxcn.org/$arch` 的 `$arch` 自动展开为
-  aarch64,无需改动)。
+  aarch64,modules/pacman.sh 的 archlinuxcn 段与 modules/cli-tools.sh 的
+  yay 均无需改动。
 
 ## 4. 分区与引导方案(已定:方案 A)
 
@@ -170,14 +181,15 @@ distro_kernel_packages)。另外支持可选函数 `distro_host_preflight`
      `Architecture = aarch64`、alarm 仓库段(core/extra/alarm/aur)
      `SigLevel = Required DatabaseOptional` + 选定 mirror;
      路径存全局 `PACSTRAP_CONF`。
-- `distro_base_packages()`:echo `base linux-firmware btrfs-progs
-  iptables-nft`(无 efifs;btrfs-progs 理由同 arch.sh 注释:
-  mkinitcpio fsck hook 需要)。
+- `distro_base_packages()`:echo `base archlinuxarm-keyring linux-firmware
+  btrfs-progs iptables-nft`(无 efifs;btrfs-progs 理由同 arch.sh 注释:
+  mkinitcpio fsck hook 需要;keyring 包显式列入,保证 --populate 有源)。
 - `distro_setup_repos()`(chroot 内、pacstrap 后):
   写入目标正式 pacman.conf(alarm 仓库段 + DatabaseOptional)、
   mirrorlist(`MY_ALARM_MIRROR`,见 §5.7)、
-  `pacman-key --init` + `pacman-key --populate archlinuxarm`、
-  然后 `pacman -Syu`。无 multilib(aarch64 无此概念)。
+  `pacman-key --populate archlinuxarm`(**不做 --init**:pacstrap -K
+  已在目标初始化过 keyring,见 §3.1)、然后 `pacman -Syu`。
+  无 multilib(aarch64 无此概念)。
 - `distro_kernel_packages()`:设 `KERNEL_PKG=linux-aarch64`、
   `KERNEL_PKGS="linux-aarch64 linux-aarch64-headers"`;并临时移除
   autodetect(§3.5):先 `cp mkinitcpio.conf mkinitcpio.conf.alarm-orig`
@@ -194,14 +206,12 @@ distro_kernel_packages)。另外支持可选函数 `distro_host_preflight`
      固件内置 DTB 可兜底)。
 
 **pacstrap 调用改造(modules/base.sh):** alarm 需要
-`pacstrap -C "$PACSTRAP_CONF" -M` 且**不用 -K**(-K 在目标初始化空
-keyring;alarm 走"拷贝宿主 keyring"默认路径,宿主已 lsign 构建密钥,
-pacstrap 安装与目标内 pacman 立即可用;随后 distro_setup_repos 的
---populate 补齐 web-of-trust)。实现:distro 可设
-`PACSTRAP_CONF`/`PACSTRAP_KEYRING_MODE` 全局变量,base.sh 按变量拼接
-参数;x86 路径行为不变(-K 保留)。alarm.sh 在文件顶层(source 时)即设
-`PACSTRAP_KEYRING_MODE=copy`;`PACSTRAP_CONF` 由 distro_host_preflight
-生成后赋值。
+`pacstrap -C "$PACSTRAP_CONF" -M`(自定义 conf + 跳过宿主 mirrorlist
+拷贝);**`-K` 保留不变**(源码实测:-K 只做目标 keyring --init,
+安装期验签走宿主 keyring,宿主 preflight 已 lsign alarm 构建密钥,
+见 §3.1)。实现:distro 可设 `PACSTRAP_CONF` 全局变量,base.sh 存在时
+追加 `-C "$PACSTRAP_CONF" -M`;x86 路径行为完全不变。`PACSTRAP_CONF`
+由 distro_host_preflight 生成后赋值。
 
 ### 5.3 主入口 arch-install
 
