@@ -99,8 +99,18 @@ zram 生效。验收方式:只做真机实测,不做 qemu aarch64 模拟。
   initramfs。RK3588 专有驱动(sdhci-of-arasan、phy-rockchip-*、
   pcie-rockchip-host 等)不会进入 initramfs → **eMMC/SD 启动必死**;
   NVMe 碰巧可能因宿主也是 NVMe 而同名命中,但不可依赖。
-- 对策:安装时从 `mkinitcpio.conf` 的 HOOKS 中**删除 autodetect**
-  (完整 initramfs,体积变大可接受)。Arch 官方 ARM 做法相同。
+- 对策:**安装期**从 `mkinitcpio.conf` 的 HOOKS 中临时删除 autodetect
+  (完整 initramfs,体积变大可接受),**安装末尾恢复**(见 §5.2)——
+  镜像内首启用的是完整 initramfs;后续真机上的内核更新在真实 RK3588
+  硬件上重新生成,autodetect 正常工作、产出裁剪合理的 initramfs。
+- 上游事实(archlinuxarm/PKGBUILDs 核实):**删除 autodetect 不是 alarm
+  官方做法**。alarm 的 `core/mkinitcpio` 包(41.1-1,arch=any)只有三个
+  patch(默认 gzip 压缩 / gzip 内核 kver_gen / ALARM 内核 post hooks),
+  均不触碰 `mkinitcpio.conf`,即 alarm 出厂 HOOKS 与 x86 Arch 相同、
+  含 autodetect——官方构建跑在真实 ARM 硬件上,没有我们这种跨架构
+  /sys 失真问题。另:`linux-aarch64` preset 确认为
+  `PRESETS=('default')` 单预设(虽定义了 fallback_image 与
+  `fallback_options="-S autodetect"` 但不构建)。
 
 ### 3.6 OPi5+ 硬件与 cmdline(mainline dts 实证)
 - 双 2.5G 网口均为 PCIe 挂接 RTL8125(pcie2x1l1=右口,l2=左口),
@@ -169,12 +179,19 @@ distro_kernel_packages)。另外支持可选函数 `distro_host_preflight`
   `pacman-key --init` + `pacman-key --populate archlinuxarm`、
   然后 `pacman -Syu`。无 multilib(aarch64 无此概念)。
 - `distro_kernel_packages()`:设 `KERNEL_PKG=linux-aarch64`、
-  `KERNEL_PKGS="linux-aarch64 linux-aarch64-headers"`;并从
-  `$MNT_DIR/etc/mkinitcpio.conf` 的 HOOKS 删除 autodetect(§3.5)。
-- `distro_post_install()`:复制
-  `$MNT_DIR/boot/dtbs/rockchip/rk3588-orangepi-5-plus.dtb` →
-  `$MNT_DIR/efi/dtb/base/`(mkdir -p;文件缺失时 warn 不 die,
-  固件内置 DTB 可兜底)。
+  `KERNEL_PKGS="linux-aarch64 linux-aarch64-headers"`;并临时移除
+  autodetect(§3.5):先 `cp mkinitcpio.conf mkinitcpio.conf.alarm-orig`
+  备份,再 sed 从 HOOKS 删除 autodetect(备份恢复法,不做双向字符串
+  拼接,避免脆弱的二次 sed)。
+- `distro_post_install()`:
+  1. **恢复 autodetect**:`mv mkinitcpio.conf.alarm-orig
+     mkinitcpio.conf`。镜像内的 initramfs 已是安装期生成的完整版;
+     此后真机上的内核更新在真实硬件上跑 mkinitcpio,autodetect 正常
+     裁剪。中间无其他模块改 mkinitcpio.conf(全仓 grep 核实),整文件
+     恢复安全。
+  2. 复制 `$MNT_DIR/boot/dtbs/rockchip/rk3588-orangepi-5-plus.dtb` →
+     `$MNT_DIR/efi/dtb/base/`(mkdir -p;文件缺失时 warn 不 die,
+     固件内置 DTB 可兜底)。
 
 **pacstrap 调用改造(modules/base.sh):** alarm 需要
 `pacstrap -C "$PACSTRAP_CONF" -M` 且**不用 -K**(-K 在目标初始化空
@@ -270,7 +287,8 @@ server profile**;desktop profile 在 aarch64 未验证,强行使用自负。
    - alarm GUID B921B045 出现在 lib/disk.sh;
    - install_bootloader 的 alarm 分支:`linux /Image`、
      `initramfs-linux.img`、无 amd-ucode、alarm 分支无 add_efi_memmap;
-   - mkinitcpio.conf 删 autodetect 逻辑存在;
+   - mkinitcpio.conf 的 autodetect 临时移除 + 末尾恢复逻辑存在
+     (备份文件法);
    - hardware.sh turbostat 有 alarm 门禁;dev-tools.sh opencode 有
      alarm 门禁;pacman.sh mirrorlist 段有 alarm 跳过、archlinuxcn 段
      无门禁;
@@ -295,7 +313,7 @@ server profile**;desktop profile 在 aarch64 未验证,强行使用自负。
 
 | 风险 | 缓解 |
 |---|---|
-| autodetect 裁剪导致 eMMC/SD 起不来 | 安装期删 autodetect(§3.5),真机三种介质验证 |
+| autodetect 裁剪导致 eMMC/SD 起不来 | 安装期临时删 autodetect、末尾恢复(§3.5/§5.2),真机三种介质验证 |
 | 固件 DTB 与内核不配套 | /efi/dtb/base/ override 通道已内建;固件 fix-up 优先 |
 | binfmt 慢导致构建耗时翻倍 | 预期内;文档注明;qemu-user 下避免重活(gpg 已在宿主做完大半) |
 | alarm 数据库不签名被误以为损坏 | pacman.conf DatabaseOptional + README 说明是上游设计 |
