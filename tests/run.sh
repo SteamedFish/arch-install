@@ -340,6 +340,10 @@ check "alarm 引导项 initramfs-linux.img" "grep -q 'initrd  /initramfs-linux.i
 check "alarm 引导项标题 Arch Linux ARM" "grep -q 'Arch Linux ARM' lib/disk.sh"
 check "alarm 引导项无 add_efi_memmap(x86-only)" "! awk '/DISTRO.*== alarm.*\)/,/^    else/' lib/disk.sh | grep -q add_efi_memmap"
 check "alarm 分支不写 fallback 条目(内核包名≠preset 名)" "! awk '/DISTRO.*== alarm.*\)/,/^    else/' lib/disk.sh | grep -q fallback"
+check "hardware turbostat 有 alarm 门禁(x86-only)" "grep -q 'pkgs+=(turbostat)' modules/hardware.sh"
+check "hardware linux-tools-meta 保留(alarm 存在)" "grep -q 'linux-tools-meta' modules/hardware.sh"
+check "dev-tools opencode 有 alarm 门禁(alarm 404)" "grep -q 'pkgs+=(opencode)' modules/dev-tools.sh"
+check "dev-tools LSP/formatter 保留(alarm 存在)" "grep -q 'bash-language-server' modules/dev-tools.sh && grep -q 'biome' modules/dev-tools.sh && grep -q 'rust-analyzer' modules/dev-tools.sh"
 
 [[ ${CLEANUP_CONFIG:-0} == 1 ]] && rm -f config/config.sh
 

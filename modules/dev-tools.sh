@@ -4,10 +4,12 @@
 
 mod_install() {
     # 无 wakatime:官方仓库没有(仅 AUR 有 wakatime-cli),本安装器不用 AUR
-    pacman_install git git-delta github-cli \
+    # opencode 在 alarm(aarch64)仓库不存在(包页 404),alarm 跳过
+    local pkgs=(git git-delta github-cli \
         neovim vim cmake shellcheck \
-        python-black patch parallel \
-        opencode
+        python-black patch parallel)
+    [[ ${DISTRO:-arch} == alarm ]] || pkgs+=(opencode)
+    pacman_install "${pkgs[@]}"
     # opencode 内置 LSP/formatter 支持的工具(全官方仓库,选型见 CHANGELOG 2026-08-30)
     pacman_install bash-language-server lua-language-server \
         ruff uv biome yaml-language-server \
