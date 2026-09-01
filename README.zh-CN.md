@@ -41,9 +41,11 @@ sudo ./arch-install --device hx370 --target /dev/nvme0n1 --profile desktop   # �
 qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/x64/OVMF.4m.fd -drive file=system.img,format=raw
 ```
 
+aarch64(`--distro alarm`)镜像不能用 qemu-system-x86_64 验证:需真机或 qemu-system-aarch64(本安装器未提供该仿真路径)。
+
 ## Arch Linux ARM(aarch64)
 
-`--distro alarm` 从 x86_64 宿主交叉构建 Arch Linux ARM 镜像。已验证目标:RK3588 开发板(Orange Pi 5 Plus,SPI 已刷 edk2-rk3588 UEFI 固件)。
+`--distro alarm` 从 x86_64 宿主交叉构建 Arch Linux ARM 镜像。目标:RK3588 开发板(Orange Pi 5 Plus,SPI 已刷 edk2-rk3588 UEFI 固件);镜像构建与真机启动验证为后续任务。
 
 宿主要求:
 
@@ -60,6 +62,8 @@ sudo ./arch-install --device opi5plus --target opi5plus.img --profile server
 dd if=opi5plus.img of=/dev/sdX bs=4M status=progress conv=fsync   # 写入 SD / eMMC / NVMe
 # 首启:systemd-repart + systemd-growfs 把根分区与 btrfs 扩到整盘
 ```
+
+> **注意**:启动介质(SD / eMMC / NVMe)上不得残留 U-Boot,否则 edk2-rk3588 固件可能优先走残留的 U-Boot、引导链出错。SPI 例外:SPI 上必须是 edk2-rk3588。
 
 当前限制:
 
@@ -96,7 +100,7 @@ docs/plans/           设计文档与执行计划
 存储(可选): zfs(OpenZFS 数据池,`--extra-modules zfs`;根文件系统仍为 btrfs)
 ```
 
-`[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。`[multilib]` 由 `distro_setup_repos` 无条件启用(Arch 与 CachyOS 均在 distro_setup_repos 内 uncomment),即使 `--skip-modules pacman` 也能保留 wine/steam 等 32 位依赖。
+`[archlinuxcn]` 源由 pacman 模块保证必装——`rime-ice-git`、`an-anime-game-launcher-bwrap` 等包只存在于该源。KDE 专属应用(dolphin、kate、tokodon 等)在 desktop-kde 模块;gui-apps 只放 DE 无关的应用。`[multilib]` 由 `distro_setup_repos` 无条件启用(Arch 与 CachyOS 均在 distro_setup_repos 内 uncomment),即使 `--skip-modules pacman` 也能保留 wine/steam 等 32 位依赖。`--distro alarm`(aarch64)下:hardware 不装 turbostat(x86-only)、dev-tools 不装 opencode(alarm 仓库无此包)、yay 来自 archlinuxcn 的 aarch64 仓。
 
 ## 模块接口
 

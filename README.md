@@ -41,9 +41,11 @@ Boot-test an image:
 qemu-system-x86_64 -m 4G -bios /usr/share/ovmf/x64/OVMF.4m.fd -drive file=system.img,format=raw
 ```
 
+aarch64 (`--distro alarm`) images cannot be boot-tested with `qemu-system-x86_64`; they need real hardware or `qemu-system-aarch64` (this installer provides no such emulation path).
+
 ## Arch Linux ARM (aarch64)
 
-`--distro alarm` cross-builds an Arch Linux ARM image from an x86_64 host. Validated target: RK3588 boards (Orange Pi 5 Plus) running edk2-rk3588 UEFI firmware.
+`--distro alarm` cross-builds an Arch Linux ARM image from an x86_64 host. Target: RK3588 boards (Orange Pi 5 Plus) running edk2-rk3588 UEFI firmware; image build and on-device boot verification is a follow-up task.
 
 Host requirements:
 
@@ -60,6 +62,8 @@ sudo ./arch-install --device opi5plus --target opi5plus.img --profile server
 dd if=opi5plus.img of=/dev/sdX bs=4M status=progress conv=fsync   # write to SD / eMMC / NVMe
 # First boot: systemd-repart + systemd-growfs expand the root partition and btrfs to the full disk
 ```
+
+> **Warning**: the boot media (SD / eMMC / NVMe) must not contain U-Boot remnants, otherwise the edk2-rk3588 firmware may prefer the leftover U-Boot and break the boot chain. The SPI flash is the exception: it must run edk2-rk3588.
 
 Current limitations:
 
@@ -96,7 +100,7 @@ gpu (opt): gpu-amd gpu-nvidia gpu-intel gpgpu (OpenCL/ROCm/CUDA, `MY_GPGPU`)
 storage (opt): zfs (OpenZFS data pools, `--extra-modules zfs`; root stays btrfs)
 ```
 
-The `[archlinuxcn]` repo is always configured by the `pacman` module — packages like `rime-ice-git` and `an-anime-game-launcher-bwrap` only exist there. KDE-only apps (dolphin, kate, tokodon, …) live in `desktop-kde`; `gui-apps` holds DE-agnostic apps only. `[multilib]` is enabled unconditionally by `distro_setup_repos` (both Arch and CachyOS), so wine/steam and other 32-bit deps work even when `--skip-modules pacman` is used.
+The `[archlinuxcn]` repo is always configured by the `pacman` module — packages like `rime-ice-git` and `an-anime-game-launcher-bwrap` only exist there. KDE-only apps (dolphin, kate, tokodon, …) live in `desktop-kde`; `gui-apps` holds DE-agnostic apps only. `[multilib]` is enabled unconditionally by `distro_setup_repos` (both Arch and CachyOS), so wine/steam and other 32-bit deps work even when `--skip-modules pacman` is used. Under `--distro alarm` (aarch64): `hardware` skips turbostat (x86-only), `dev-tools` skips opencode (not in the alarm repos), and `yay` comes from the archlinuxcn aarch64 repo.
 
 ## Module interface
 

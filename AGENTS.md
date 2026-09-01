@@ -50,8 +50,9 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
-- 2026-09-01:新增 distro/alarm.sh,Arch Linux ARM(aarch64)支持;已验证目标
-  RK3588/Orange Pi 5 Plus(SPI 刷 edk2-rk3588 UEFI 固件),设计文档
+- 2026-09-01:新增 distro/alarm.sh,Arch Linux ARM(aarch64)支持;目标
+  RK3588/Orange Pi 5 Plus(SPI 刷 edk2-rk3588 UEFI 固件;镜像构建与真机
+  启动验证为后续任务),设计文档
   docs/superpowers/specs/2026-09-01-archlinuxarm-support-design.md。要点:
   1) 跨架构 bootstrap:宿主装 qemu-user-static + qemu-user-static-binfmt,
      distro_host_preflight 检查 binfmt_misc/qemu-aarch64 已注册、enabled、带 F
@@ -75,7 +76,7 @@ docs/plans/           设计与计划文档
      (alarm 仓库 404),pacman 模块 mirrorlist 四模式跳过 alarm
   7) config/config.example.sh 加 MY_ALARM_MIRROR;devices/example.sh 加 alarm
      预设示例(RK3588:zram 内存方案 + ttyS2 串口 console)
-  alarm 当前仅验证 server profile,desktop 未实测。tests/run.sh 共 344 项全过
+  alarm 当前仅适配 server profile,desktop 未实测。tests/run.sh 共 344 项全过
   (本节含文档同步新增 2 项)。
 - 2026-08-30:dev-tools 分类重排 + 补 opencode 内置 LSP/formatter 工具。
   分类重排(参照设计文档 §3.2 模块表):yadm 是无条件装,归 base.sh
