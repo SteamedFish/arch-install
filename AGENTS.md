@@ -23,7 +23,9 @@ config/hooks.sh       gitignored 私活逻辑
 devices/example.sh    tracked 设备模板;devices/*.sh gitignored(--device NAME
                       固化设备级 CLI 默认值与 MY_* 变量,
                       叠加:内置默认→config.sh→设备文件→CLI)
-tests/run.sh          纯 bash 测试(无外部依赖)
+tests/                bats 测试(test_helper.bash + 9 个 *.bats;syntax/module_contract/
+                      profile_contract/hard_constraints/resolver/dryrun/feature_specifics/
+                      devices/firewall);运行:bats tests/(需 bats 包,已装在 [extra])
 docs/plans/           设计与计划文档
 ```
 
@@ -48,6 +50,18 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-09-08:测试框架迁移 bats。`tests/run.sh`(纯 bash 自测,304 项)替换为
+  bats 测试套件:`tests/test_helper.bash`(共享 helpers:assert_file_contains/
+  contains_literal/word_in_file/dirs_no_match 等)+ 9 个 *.bats(
+  syntax/module_contract/profile_contract/hard_constraints/resolver/dryrun/
+  feature_specifics/devices/firewall)。运行:`bats tests/`(bats 由
+  dev-tools 模块装在 [extra])。原 `check "msg" "cmd"` 一一映射为 `@test`,
+  失败精确定位到单断言;mod_requires/conflicts/before 三函数 105 引用
+  拆为单断言(原是循环展开,失败时被后续掩盖)。section 7 的 pacman_install
+  行匹配改用 `grep -qF`(字面)防 `pkgs+=(swaylock)`/`chattr +C`/括号等
+  正则元字符误命中。dryrun/devices 测试 setup 临时建 config/config.sh,
+  teardown 视情况清理(已有私活 config.sh 保留)。共 385 测试,全过;
+  shellcheck 对 helpers 零新增告警。
 - 2026-09-08:dev-tools 新增 `bats`(Bash Automated Testing System,[extra]
   1.14.0-1,依赖 bash/coreutils/ncurses/parallel 全已在装,无冲突)。
   字母序插入 LSP/formatter 批(bash-language-server 与

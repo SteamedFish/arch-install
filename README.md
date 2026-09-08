@@ -53,7 +53,10 @@ config/               config.example.sh + hooks.example.sh (tracked templates);
                       config.sh + hooks.sh (gitignored, your personal config)
 devices/              example.sh (tracked template); NAME.sh per-device presets
                       (gitignored, loaded via `--device NAME`)
-tests/run.sh          pure-bash self tests (syntax, module contract, conventions, resolver unit tests, dry-run)
+tests/                bats tests (test_helper.bash + 9 *.bats files: syntax, module_contract,
+                      profile_contract, hard_constraints, resolver, dryrun, feature_specifics,
+                      devices, firewall); run with: bats tests/ (requires the `bats` package,
+                      installed via modules/dev-tools.sh [extra])
 docs/plans/           design doc and execution plan (Chinese)
 ```
 
@@ -82,7 +85,7 @@ mod_install()   { pacman_install xxx; chroot_write_file ...; chroot_enable ...; 
 
 Conventions:
 
-- **No hardcoded personal data** in modules; read `MY_*` vars only, skip when empty (enforced by `tests/run.sh`)
+- **No hardcoded personal data** in modules; read `MY_*` vars only, skip when empty (enforced by `tests/hard_constraints.bats`)
 - Install + config + service-enable for one feature must stay in the same file
 - `pacman_install` runs `pacman -Sc` after every install (image space protection)
 - Comment every install-order-sensitive spot (pacman picks `a` alphabetically for `a or b` deps)

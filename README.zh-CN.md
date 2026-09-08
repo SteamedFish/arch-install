@@ -53,7 +53,9 @@ config/               config.example.sh + hooks.example.sh(tracked 模板);
                       config.sh + hooks.sh(gitignored,你的个人配置)
 devices/              example.sh(tracked 模板);NAME.sh 设备预设
                       (gitignored,`--device NAME` 加载)
-tests/run.sh          纯 bash 自测(语法、模块契约、硬约定、解析器单测、dry-run)
+tests/                bats 测试(test_helper.bash + 9 个 *.bats;syntax/module_contract/
+                      profile_contract/hard_constraints/resolver/dryrun/feature_specifics/
+                      devices/firewall);运行:bats tests/(需 bats 包,已装在 [extra])
 docs/plans/           设计文档与执行计划
 ```
 
@@ -82,7 +84,7 @@ mod_install()   { pacman_install xxx; chroot_write_file ...; chroot_enable ...; 
 
 约定:
 
-- 模块内**禁止硬编码个人信息**;只读 `MY_*` 变量,为空则跳过(`tests/run.sh` 强制检查)
+- 模块内**禁止硬编码个人信息**;只读 `MY_*` 变量,为空则跳过(`tests/hard_constraints.bats` 强制检查)
 - 同一功能的装包/配置/enable 必须在同一文件内
 - `pacman_install` 每次装完自动 `pacman -Sc`(镜像空间保护)
 - 装包顺序敏感处必须注释(pacman 对 `a or b` 依赖按字母序选 a 的坑)
