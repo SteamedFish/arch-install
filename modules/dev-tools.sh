@@ -9,7 +9,7 @@ mod_install() {
         python-black patch parallel \
         opencode
     # opencode 内置 LSP/formatter 支持的工具(全官方仓库,选型见 CHANGELOG 2026-08-30)
-    pacman_install bash-language-server lua-language-server \
+    pacman_install bash-language-server bats lua-language-server \
         ruff uv biome yaml-language-server \
         pyright gopls rust-analyzer
 }

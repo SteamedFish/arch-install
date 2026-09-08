@@ -48,6 +48,10 @@ docs/plans/           设计与计划文档
 
 ## CHANGELOG
 
+- 2026-09-08:dev-tools 新增 `bats`(Bash Automated Testing System,[extra]
+  1.14.0-1,依赖 bash/coreutils/ncurses/parallel 全已在装,无冲突)。
+  字母序插入 LSP/formatter 批(bash-language-server 与
+  lua-language-server 之间);tests/run.sh +1(共 304)。
 - 2026-08-30:dev-tools 分类重排 + 补 opencode 内置 LSP/formatter 工具。
   分类重排(参照设计文档 §3.2 模块表):yadm 是无条件装,归 base.sh
   (secrets 三档 copy/firstboot/keyfile 都依赖 yadm clone,原来只在

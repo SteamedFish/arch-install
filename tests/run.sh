@@ -209,6 +209,7 @@ check "gui-apps cachyos-firefox-settings 受 DISTRO 守卫" "grep -q 'DISTRO.*ca
 check "dev-tools 含 opencode" "grep -q '\\<opencode\\>' modules/dev-tools.sh"
 check "dev-tools 含 shellcheck" "grep -q '\\<shellcheck\\>' modules/dev-tools.sh"
 check "dev-tools 含 bash-language-server" "grep -q '\\<bash-language-server\\>' modules/dev-tools.sh"
+check "dev-tools 含 bats" "grep -q '\\<bats\\>' modules/dev-tools.sh"
 check "dev-tools 含 lua-language-server" "grep -q '\\<lua-language-server\\>' modules/dev-tools.sh"
 check "dev-tools 含 ruff" "grep -q '\\<ruff\\>' modules/dev-tools.sh"
 check "dev-tools 含 uv" "grep -q '\\<uv\\>' modules/dev-tools.sh"
