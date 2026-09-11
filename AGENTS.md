@@ -37,6 +37,50 @@ docs/plans/           设计与计划文档
 - `pacman_install` 后自动 `pacman -Sc`(镜像空间保护)
 - 新功能同步更新:本文件、README、CHANGELOG
 
+## 运维安全红线:loop 镜像 chroot 定制(2026-09-11 事故实录)
+
+对 loop 挂载的镜像 rootfs 做 chroot 定制时,一次操作事故把**宿主机**的
+/dev/pts、cgroup2 等 13 个关键挂载全部卸载,导致新 SSH 会话无法分配 PTY、
+systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复顺序如下。
+
+**红线 1:卸载完成之前绝不 rm**
+
+- 对任何目录 `rm -rf` 前,先 `findmnt <路径>` 确认没有挂载(含 bind 与递归挂载)。
+  事故中对仍挂着 chroot 树的目录跑 rm,虽然因属主权限大部分失败,但 bind 进来的
+  宿主 /run/user/1000 内容被删,用户 session 损坏。
+- 顺序必须是:umount(递归+lazy)→ `findmnt` 确认无输出 → 才 rm。
+
+**红线 2:rbind 进 chroot 的宿主挂载,卸载事件会传播回宿主**
+
+- systemd 的 /dev、/proc、/sys、/run 都是 **shared propagation**:
+  `mount --rbind /dev $chroot/dev` 之后再对其 `umount -R`,卸载会**传播到宿主**。
+  本次事故链:rbind /dev、/proc、/sys、/run → 拆除时 umount -R → 宿主失去
+  devpts/shm/mqueue/hugepages/cgroup2/debugfs/tracefs/configfs/bpf/securityfs/
+  pstore/efivarss(fusectl 也在列)。
+- 正确姿势:
+  - /run 用独立 tmpfs(`mount -t tmpfs tmpfs $chroot/run`),不 rbind 宿主 /run
+    (会把 /run/user/* 会话目录带进 chroot,rm 时殃及宿主 session);
+  - /proc、/sys 用新挂载(`mount -t proc proc ...`),不 rbind;
+  - 必须 rbind 的(/dev):挂载后立刻 `mount --make-rslave $chroot/dev` 切断传播;
+  - 拆除用 `umount -R -l`:chroot 刚退出时子进程仍持有 /dev 引用,立即 umount 会 EBUSY。
+- **事故恢复顺序**:先 cgroup2(`mount -t cgroup2 none /sys/fs/cgroup`,
+  否则 systemd 建不了 cgroup、一切 service 操作失败),再 devpts
+  (`gid=5,mode=620,ptmxmode=666`,否则 sshd openpty 失败),其余
+  mqueue/hugepages/shm/bpf/securityfs/pstore/efivarfs/debugfs/tracefs/configfs
+  用 `systemctl start <unit>.mount` 或手工 mount。拿不准就挑无人时段重启。
+
+**同类技术坑(本仓库 bash 脚本同样适用)**
+
+- `findmnt` 无结果时 **exit 1**;在 `set -e` + pipefail 下会静默杀掉整条管道
+  (本次事故脚本"无声退出"的根因之一)。
+- `pkill -f` 的模式会匹配到执行 pkill 的 bash 包装进程自身(其命令行含同样
+  字符串),用 `[x]` 字符类技巧规避。
+- `losetup -Pf` 的分区节点由 udev 异步创建,立即 mount 会 "Can't lookup blockdev",
+  需轮询等待 `${LOOP}p1` 出现。
+- 跨架构 chroot(如 x86 宿主挂 aarch64 rootfs)需要用户态模拟时,新发行版的包管理器
+  沙箱(Landlock/user namespace)在模拟器下会失败,需关掉沙箱;binfmt_misc 注册
+  随重启失效,要按需重建。
+
 ## TODO
 
 - [x] 核心骨架(lib + 主入口)
