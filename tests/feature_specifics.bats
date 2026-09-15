@@ -465,3 +465,199 @@ teardown() {
     assert_file_contains modules/mem-zswap.sh '70-zram.conf'
     assert_file_contains modules/mem-zswap.sh 'zswap-off.conf'
 }
+
+# ============================================================
+# section 21: alarm(aarch64) Arch Linux ARM 支持
+# ============================================================
+
+@test "section 21: distro/alarm.sh 存在" {
+    [[ -f distro/alarm.sh ]]
+}
+
+@test "section 21: alarm 定义四函数契约" {
+    assert_file_contains distro/alarm.sh '^distro_base_packages\(\)'
+    assert_file_contains distro/alarm.sh '^distro_setup_repos\(\)'
+    assert_file_contains distro/alarm.sh '^distro_kernel_packages\(\)'
+    assert_file_contains distro/alarm.sh '^distro_post_install\(\)'
+}
+
+@test "section 21: alarm 定义 distro_host_preflight" {
+    assert_file_contains distro/alarm.sh '^distro_host_preflight\(\)'
+}
+
+@test "section 21: alarm preflight 检查 binfmt qemu-aarch64" {
+    assert_file_contains distro/alarm.sh 'binfmt_misc/qemu-aarch64'
+}
+
+@test "section 21: alarm preflight 检查 F flag" {
+    assert_file_contains distro/alarm.sh 'flags:.*F'
+}
+
+@test "section 21: alarm 构建密钥指纹" {
+    assert_file_contains distro/alarm.sh '68B3537F39A313B3E574D06777193F152BDBE6A6'
+}
+
+@test "section 21: alarm base_packages 显式含 archlinuxarm-keyring" {
+    assert_file_contains distro/alarm.sh 'archlinuxarm-keyring'
+}
+
+@test "section 21: alarm base_packages 无 efifs(alarm 无此包)" {
+    ! grep -qE 'echo .*efifs' distro/alarm.sh
+}
+
+@test "section 21: alarm 数据库不签名 DatabaseOptional" {
+    assert_file_contains distro/alarm.sh 'Required DatabaseOptional'
+}
+
+@test "section 21: alarm 四仓库段 core/extra/alarm/aur" {
+    assert_file_contains distro/alarm.sh '^\[alarm\]'
+    assert_file_contains distro/alarm.sh '^\[aur\]'
+}
+
+@test "section 21: alarm 内核包 linux-aarch64" {
+    assert_file_contains distro/alarm.sh 'KERNEL_PKG=linux-aarch64'
+}
+
+@test "section 21: alarm autodetect 备份恢复法" {
+    assert_file_contains distro/alarm.sh 'mkinitcpio.conf.alarm-orig'
+}
+
+@test "section 21: alarm 不做 pacman-key --init(pacstrap -K 已做)" {
+    ! grep -q 'pacman-key --init' distro/alarm.sh
+}
+
+@test "section 21: alarm 做 pacman-key --populate" {
+    assert_file_contains distro/alarm.sh 'pacman-key --populate archlinuxarm'
+}
+
+@test "section 21: alarm dtb override 到 /efi/dtb/base" {
+    assert_file_contains distro/alarm.sh '/efi/dtb/base'
+}
+
+@test "section 21: alarm 读 MY_ALARM_MIRROR" {
+    assert_file_contains distro/alarm.sh 'MY_ALARM_MIRROR'
+}
+
+@test "section 21: alarm 无 multilib(aarch64 无此概念)" {
+    ! grep -qi multilib distro/alarm.sh
+}
+
+@test "section 21: --distro 白名单含 alarm" {
+    assert_file_contains arch-install 'DISTRO == alarm'
+}
+
+@test "section 21: alarm 强制 CPUTYPE=generic" {
+    assert_file_contains arch-install 'CPUTYPE=generic'
+}
+
+@test "section 21: alarm 镜像末尾提示 dd 而非 qemu-x86" {
+    assert_file_contains_literal arch-install 'alarm(aarch64)镜像'
+}
+
+@test "section 21: dry-run alarm" {
+    ensure_dryrun_config
+    ./arch-install --target /tmp/x.img --profile server --distro alarm --dry-run >/dev/null 2>&1
+}
+
+@test "section 21: alarm XBOOTLDR 用 FAT32(无 efifs)" {
+    assert_file_contains lib/disk.sh 'mkfs.fat -n "Linux Boot"'
+}
+
+@test "section 21: alarm 引导项用 /Image(PE-stub;Image.gz 不可加载)" {
+    assert_file_contains lib/disk.sh 'linux   /Image'
+}
+
+@test "section 21: alarm 引导项 initramfs-linux.img" {
+    assert_file_contains lib/disk.sh 'initrd  /initramfs-linux.img'
+}
+
+@test "section 21: alarm 引导项标题 Arch Linux ARM" {
+    assert_file_contains lib/disk.sh 'Arch Linux ARM'
+}
+
+@test "section 21: alarm 引导项无 add_efi_memmap(x86-only)" {
+    ! awk '/linux   \/Image/,/^    else/' lib/disk.sh | grep -qE 'options.*add_efi_memmap'
+}
+
+@test "section 21: alarm 分支不写 fallback 条目(内核包名≠preset 名)" {
+    ! awk '/linux   \/Image/,/^    else/' lib/disk.sh | grep -qE 'fallback[.]conf|initramfs-.*-fallback'
+}
+
+@test "section 21: 根分区 GUID 按架构(aarch64 = Linux root ARM-64)" {
+    assert_file_contains lib/disk.sh 'B921B045-1DF0-41C3-AF44-4C6F280D3FAE'
+}
+
+@test "section 21: hardware turbostat 有 alarm 门禁(x86-only)" {
+    assert_file_contains_literal modules/hardware.sh 'pkgs+=(turbostat)'
+}
+
+@test "section 21: hardware linux-tools-meta 保留(alarm 存在)" {
+    assert_file_contains modules/hardware.sh 'linux-tools-meta'
+}
+
+@test "section 21: dev-tools opencode/shellcheck 有 alarm 门禁(alarm 缺包)" {
+    assert_file_contains_literal modules/dev-tools.sh 'pkgs+=(opencode shellcheck)'
+}
+
+@test "section 21: dev-tools 批次数组不含 shellcheck(已移入门禁)" {
+    ! grep -qE 'cmake shellcheck' modules/dev-tools.sh
+}
+
+@test "section 21: dev-tools biome 有 alarm 门禁(alarm 缺包)" {
+    assert_file_contains modules/dev-tools.sh '|| pacman_install biome'
+}
+
+@test "section 21: dev-tools LSP 批不含 biome(已移入门禁)" {
+    ! grep -qE 'uv biome' modules/dev-tools.sh
+}
+
+@test "section 21: cli-tools hwinfo/vi 有 alarm 门禁(alarm 缺包)" {
+    assert_file_contains modules/cli-tools.sh '|| pacman_install hwinfo vi'
+}
+
+@test "section 21: cli-tools 大列表不含 hwinfo/vi(已移入门禁)" {
+    ! grep -qE 'hwdata hwinfo' modules/cli-tools.sh
+    ! grep -qE 'at vi bat-extras' modules/cli-tools.sh
+}
+
+@test "section 21: dev-tools LSP/formatter 保留(alarm 存在)" {
+    assert_file_contains modules/dev-tools.sh 'bash-language-server'
+    assert_file_contains modules/dev-tools.sh 'biome'
+    assert_file_contains modules/dev-tools.sh 'rust-analyzer'
+}
+
+@test "section 21: pacman mirrorlist 四模式跳过 alarm" {
+    assert_file_contains modules/pacman.sh 'DISTRO:-arch} != alarm'
+}
+
+@test "section 21: pacman_install 在 alarm 下传 --disable-sandbox(qemu-user 无 Landlock)" {
+    assert_file_contains lib/chroot.sh 'DISTRO:-arch} == alarm.*&& sandbox'
+}
+
+@test "section 21: alarm 的 pacman -Syu 带 --disable-sandbox(同上)" {
+    assert_file_contains distro/alarm.sh 'pacman -Syu --noconfirm --disable-sandbox'
+}
+
+@test "section 21: alarm 构建期 DownloadUser 注释掉(qemu-user 沙箱必死的系统性规避)" {
+    assert_file_contains distro/alarm.sh '^#DownloadUser = alpm'
+}
+
+@test "section 21: alarm post_install 恢复 DownloadUser(真机 Landlock 正常)" {
+    assert_file_contains_literal distro/alarm.sh 's/^#DownloadUser = alpm/DownloadUser = alpm/'
+}
+
+@test "section 21: base.sh pacstrap 后注释出厂 conf 的 DownloadUser(alarm;覆盖 base 模块窗口)" {
+    assert_file_contains_literal modules/base.sh 's/^DownloadUser = alpm/#DownloadUser = alpm/'
+}
+
+@test "section 21: alarm 先装 mkinitcpio 再改 conf(内核依赖时序)" {
+    assert_file_contains distro/alarm.sh 'pacman_install mkinitcpio'
+}
+
+@test "section 21: devices 模板含 alarm 示例" {
+    assert_file_contains devices/example.sh 'DISTRO=alarm'
+}
+
+@test "section 21: AGENTS 目录结构含 distro/alarm.sh" {
+    assert_file_contains AGENTS.md 'distro/alarm\.sh'
+}
