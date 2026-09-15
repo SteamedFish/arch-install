@@ -14,6 +14,8 @@ lib/chroot.sh         arch-chroot 封装:chroot_run、pacman_install(含 pacman 
 lib/modules.sh        模块加载、requires 闭包、conflicts 校验、拓扑排序(mod_before)
 distro/arch.sh        distro_base_packages/setup_repos/kernel_packages/post_install
 distro/cachyos.sh     CachyOS 实现:keyring、v3/v4/znver4 检测、内核变体
+distro/alarm.sh       Arch Linux ARM(aarch64)实现:binfmt 宿主预检、bootstrap
+                      pacman.conf、linux-aarch64、DTB 拷 ESP
 modules/*.sh          功能模块,接口见 plan 文档
 profiles/*.conf       MODULES=(...) 预设(server.conf desktop.conf)
 config/config.example.sh  tracked 模板(全部 MY_* 变量)
@@ -94,6 +96,68 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
 
 ## CHANGELOG
 
+- 2026-09-02:alarm 缺失包门禁补全(hwinfo/vi/shellcheck/biome)。构建实挂在
+  cli-tools 的 hwinfo(target not found)后,改打地鼠为全量审计:下载 alarm
+  aarch64 core/extra/alarm/aur + archlinuxcn aarch64 五库包数据库本地比对
+  server profile 全部 18 个模块的完整包清单。缺失集=cli-tools 的 hwinfo、vi
+  (x86 中心包)+ dev-tools 的 shellcheck(haskell 栈 aarch64 未构建)、biome
+  (此前"alarm 有 biome 2.3.14"的记录有误,包页与库均为 404);其余全部在仓
+  (含 dool/cpufetch/lsd/esh/dysk/lesspipe/bat-extras/onefetch 等易疑项逐一
+  核实)。门禁沿用 `[[ DISTRO == alarm ]] ||` 既有模式,同模块内独立
+  pacman_install 调用,注释注明实测依据。修正 CHANGELOG 2026-08-30 与
+  2026-09-01 条目中的 biome 归属描述。tests/run.sh +5(共 357;替换原 opencode 单项断言)。
+
+- 2026-09-02:alarm 构建期 pacman 下载沙箱修复。qemu-user 不翻译
+  Landlock/seccomp syscall,而 pacman 7.1 的下载沙箱由出厂 pacman.conf 的
+  `DownloadUser = alpm` 触发 → chroot 内任何带下载的 pacman 调用在模拟下
+  必失败("restricting filesystem access failed because Landlock is not
+  supported by the kernel" + "switching to sandbox user 'alpm' failed";
+  loop+btrfs chroot 最小复现双向验证:--disable-sandbox 或注释
+  DownloadUser 即恢复)。修复:lib/chroot.sh pacman_install 与
+  distro/alarm.sh 的 -Syu 在 DISTRO=alarm 时带 --disable-sandbox
+  (CLI flag,不写入目标配置);alarm 覆写的 /etc/pacman.conf 显式保留
+  DownloadUser = alpm 与出厂对齐(真机 aarch64 原生内核有 Landlock,
+  沙箱正常)。x86 原生 chroot 不受影响;CHROOT_EMULATE(v2 建 v3)大概率
+  同病,该路径未实测,留注释不动。tests/run.sh +3(共 348)。
+- 2026-09-02:同问题第二轮:第一次修复只加了 CLI flag,漏了
+  modules/pacman.sh:62 archlinuxcn 的直连 `pacman -Syu`(不经过
+  pacman_install)→ 补系统性修复:base.sh 在 pacstrap 后即注释出厂 conf
+  的 DownloadUser(alarm 分支),alarm.sh 覆写 conf 同保持注释,
+  distro_post_install 恢复为出厂生效值并带验证(同 autodetect 的
+  安装期临时移除模式)。另确认 alarm 的 keyring 包装包时自带
+  pacman-key --populate .install 钩子(archlinux.gpg×5 +
+  archlinuxarm.gpg×1 lsign),distro_setup_repos 的 --populate 为幂等
+  防御保留。tests/run.sh +3(共 352)。
+- 2026-09-01:新增 distro/alarm.sh,Arch Linux ARM(aarch64)支持;目标
+  RK3588/Orange Pi 5 Plus(SPI 刷 edk2-rk3588 UEFI 固件;镜像构建与真机
+  启动验证为后续任务),设计文档
+  docs/superpowers/specs/2026-09-01-archlinuxarm-support-design.md。要点:
+  1) 跨架构 bootstrap:宿主装 qemu-user-static + qemu-user-static-binfmt,
+     distro_host_preflight 检查 binfmt_misc/qemu-aarch64 已注册、enabled、带 F
+     (fix_binary)flag,否则动磁盘前 die;alarm 构建密钥
+     68B3537F39A313B3E574D06777193F152BDBE6A6 在 pacstrap 前 recv+lsign 进
+     宿主 pacman keyring(对宿主的持久修改);pacstrap 用 .tmp/pacstrap/ 下
+     生成的 bootstrap pacman.conf(PACSTRAP_CONF,-C/-M;-K 保留,不做
+     pacman-key --init)
+  2) distro_setup_repos:MY_ALARM_MIRROR(空=GeoDNS 默认
+     mirror.archlinuxarm.org,值含 $arch/$repo 占位符)、alarm 数据库
+     SigLevel 修正为 Required DatabaseOptional(库不签名)、chroot 内
+     pacman-key --populate archlinuxarm
+  3) 内核 linux-aarch64;mkinitcpio autodetect 安装期临时移除(qemu-user 下
+     读到的是宿主 x86_64 /sys,autodetect 结果不可信),post_install 恢复
+  4) DTB 拷 ESP /efi/dtb/base/(edk2-rk3588 从该路径取 DTB)
+  5) lib/disk.sh 按架构分支:根分区 GUID B921B045(ARM-64 DPS);alarm 无
+     efifs 包,XBOOTLDR 用 FAT32(x86 仍 ext4);引导条目 /Image +
+     initramfs-linux.img,标题 Arch Linux ARM,无 add_efi_memmap(x86-only)、
+     不写 fallback 条目(内核包名≠preset 名)
+  6) 模块门禁:hardware 的 turbostat、dev-tools 的 opencode/shellcheck/biome、
+     cli-tools 的 hwinfo/vi 在 alarm 跳过(alarm 各仓库 + archlinuxcn aarch64
+     均无,包数据库比对确认),pacman 模块 mirrorlist 四模式跳过 alarm
+  7) config/config.example.sh 加 MY_ALARM_MIRROR;devices/example.sh 加 alarm
+     预设示例(RK3588:zram 内存方案 + ttyS2 串口 console)
+  alarm 当前仅适配 server profile,desktop 未实测。tests/run.sh 共 344 项全过
+  (本节含文档同步新增 2 项)。
+
 - 2026-09-08:测试框架迁移 bats。`tests/run.sh`(纯 bash 自测,304 项)替换为
   bats 测试套件:`tests/test_helper.bash`(共享 helpers:assert_file_contains/
   contains_literal/word_in_file/dirs_no_match 等)+ 9 个 *.bats(
@@ -133,7 +197,8 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
   ormolu、oxlint extra 已下架、prettier、rubocop、standardrb、pint;
   jdtls/terraform-ls 仅 archlinuxcn;clangd/clang-format 无独立包含在
   clang 内)。dev-tools 按两批 pacman_install 组织(git 生态/编辑器 +
-  LSP/formatter),第二批注释指向此 CHANGELOG。tests/run.sh +9(共 303):
+  LSP/formatter),第二批注释指向此 CHANGELOG。tests/run.sh +9(当时记 303;
+  2026-09-01 alarm 落地后实测共 342):
   新增 dev-tools 反向断言(yadm/git-crypt/pass/passff-host/shfmt 不属于
   dev-tools)+ security/base 归属断言,全过。
 - 2026-08-28:btrfs NOCOW 推广到 audit/libvirt 目录。setup_journal_nocow

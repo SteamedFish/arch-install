@@ -11,31 +11,35 @@ mod_install() {
     # multilib 由 distro_setup_repos 启用(arch.sh + cachyos.sh 各做一次,
     # 无条件,不依赖本模块是否加载)
 
-    log "mirrorlist: $MIRRORLIST"
-    # 文件名始终与官方包一致(pacman-mirrorlist→mirrorlist、archcn-mirrorlist-git→archcn-mirrorlist),
-    # 方便随时从自管文件切回官方包管理
-    case $MIRRORLIST in
-        copy)
-            cp /etc/pacman.d/mirrorlist "${MNT_DIR}/etc/pacman.d/mirrorlist"
-            ;;
-        original)
-            # 官方默认列表 = pacman-mirrorlist 包内容,直接装/刷新该包
-            pacman_install pacman-mirrorlist
-            ;;
-        reflector)
-            # 在宿主机用 reflector 生成后写入目标(需求 6)
-            command -v reflector &>/dev/null \
-                || die "--mirrorlist reflector 需要宿主机安装 reflector: sudo pacman -S reflector"
-            reflector --country China --age 12 --protocol https --sort rate \
-                --save "${MNT_DIR}/etc/pacman.d/mirrorlist"
-            ;;
-        config)
-            [[ -n ${MY_MIRRORLIST_FILE:-} && -f ${MY_MIRRORLIST_FILE:-} ]] \
-                || die "--mirrorlist config 需要 config.sh 中 MY_MIRRORLIST_FILE 指向存在的文件"
-            cp "$MY_MIRRORLIST_FILE" "${MNT_DIR}/etc/pacman.d/mirrorlist"
-            ;;
-        *) die "未知 mirrorlist 模式: $MIRRORLIST" ;;
-    esac
+    # alarm 的 mirror 由 distro/alarm.sh 的 distro_setup_repos 写入
+    # (MY_ALARM_MIRROR);x86 的四种 mirrorlist 模式对 alarm 无意义
+    if [[ ${DISTRO:-arch} != alarm ]]; then
+        log "mirrorlist: $MIRRORLIST"
+        # 文件名始终与官方包一致(pacman-mirrorlist→mirrorlist、archcn-mirrorlist-git→archcn-mirrorlist),
+        # 方便随时从自管文件切回官方包管理
+        case $MIRRORLIST in
+            copy)
+                cp /etc/pacman.d/mirrorlist "${MNT_DIR}/etc/pacman.d/mirrorlist"
+                ;;
+            original)
+                # 官方默认列表 = pacman-mirrorlist 包内容,直接装/刷新该包
+                pacman_install pacman-mirrorlist
+                ;;
+            reflector)
+                # 在宿主机用 reflector 生成后写入目标(需求 6)
+                command -v reflector &>/dev/null \
+                    || die "--mirrorlist reflector 需要宿主机安装 reflector: sudo pacman -S reflector"
+                reflector --country China --age 12 --protocol https --sort rate \
+                    --save "${MNT_DIR}/etc/pacman.d/mirrorlist"
+                ;;
+            config)
+                [[ -n ${MY_MIRRORLIST_FILE:-} && -f ${MY_MIRRORLIST_FILE:-} ]] \
+                    || die "--mirrorlist config 需要 config.sh 中 MY_MIRRORLIST_FILE 指向存在的文件"
+                cp "$MY_MIRRORLIST_FILE" "${MNT_DIR}/etc/pacman.d/mirrorlist"
+                ;;
+            *) die "未知 mirrorlist 模式: $MIRRORLIST" ;;
+        esac
+    fi
 
     log "archlinuxcn 源"
     if [[ $MIRRORLIST == copy ]]; then

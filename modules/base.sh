@@ -5,8 +5,24 @@
 
 mod_install() {
     log "pacstrap 基础系统"
+    # alarm(aarch64)跨架构:pacstrap 无 --arch,用 -C 指定 bootstrap pacman.conf
+    # (Architecture=aarch64,由 distro/alarm.sh 的 host_preflight 生成)+ -M
+    # 跳过宿主 mirrorlist 拷贝;-K 不变(pacstrap 源码:安装期验签走宿主
+    # keyring,-K 只对目标 keyring 做 --init)
+    local -a pacstrap_args=(-K)
+    [[ -n ${PACSTRAP_CONF:-} ]] && pacstrap_args+=(-C "$PACSTRAP_CONF" -M)
     # shellcheck disable=SC2046
-    pacstrap -K "$MNT_DIR" $(distro_base_packages)
+    pacstrap "${pacstrap_args[@]}" "$MNT_DIR" $(distro_base_packages)
+
+    # alarm 构建期禁用 pacman 7.1 下载沙箱:沙箱由出厂 pacman.conf 的
+    # DownloadUser=alpm 触发,而 qemu-user 不翻译 Landlock/seccomp syscall
+    # → chroot 内任何带下载的 pacman 必失败(实测;distro_setup_repos 覆写
+    # conf 前,base 模块装包用的就是这份出厂 conf)。distro_post_install
+    # 恢复(真机 aarch64 原生内核有 Landlock,沙箱正常)。x86 原生 chroot
+    # 不受影响,不动
+    if [[ ${DISTRO:-arch} == alarm ]]; then
+        sed -i 's/^DownloadUser = alpm/#DownloadUser = alpm/' "$MNT_DIR/etc/pacman.conf"
+    fi
 
     log "生成 fstab"
     genfstab -U "$MNT_DIR" >>"${MNT_DIR}/etc/fstab"
