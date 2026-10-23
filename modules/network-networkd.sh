@@ -49,7 +49,10 @@ EOF
     # /etc/resolv.conf 是 filesystem 包自带的占位文件(只有注释、零 nameserver),
     # symlink 到 stub-resolv.conf 后,resolved 启动时会自动写入 nameserver。
     # ln -sf 在源不存在时也能建 symlink(/run/systemd/resolve/ 首启才出现)。
-    chroot_run ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+    # 必须宿主侧操作:arch-chroot 会把宿主 /etc/resolv.conf bind 进 chroot,
+    # chroot 内替换它报 EBUSY(limine 构建实测);bind 只在 chroot 挂载命名空间
+    # 内,宿主侧 $MNT_DIR 下是底层占位文件可自由替换。
+    ln -sf /run/systemd/resolve/stub-resolv.conf "$MNT_DIR/etc/resolv.conf"
 }
 
 mod_conflicts() { echo network-nm; }

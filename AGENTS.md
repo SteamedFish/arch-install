@@ -96,6 +96,15 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
 
 ## CHANGELOG
 
+- 2026-10-23:network-networkd 的 resolv.conf symlink 改宿主侧操作。原
+  `chroot_run ln -sf … /etc/resolv.conf` 在真实构建中必败:arch-chroot 会把
+  宿主 /etc/resolv.conf bind 进 chroot,chroot 内替换它报
+  "ln: failed to create symbolic link '/etc/resolv.conf': Device or resource
+  busy"(limine 镜像构建实测;9dccfa1 的修复只经静态断言与真机手工验证,
+  从未走过 networkd 路径的完整构建——hp845g11 用 network-nm 不触发)。
+  改为宿主侧 `ln -sf … "$MNT_DIR/etc/resolv.conf"`:bind 只存在于 chroot
+  挂载命名空间,宿主侧 $MNT_DIR 下是底层占位文件可自由替换。
+  tests/feature_specifics.bats +1 回归断言(禁 chroot_run ln 形态)。
 - 2026-10-23:新增 `--bootloader systemd-boot|limine` 选项(默认 systemd-boot)。
   limine 模式仅限 `--distro cachyos`(limine / limine-mkinitcpio-hook 仅 [cachyos]
   仓库提供,Arch 侧 AUR-only,本仓库无 AUR helper)。调研依据:limine-mkinitcpio-hook

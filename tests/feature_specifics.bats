@@ -216,6 +216,13 @@ teardown() {
 @test "section 10: network-networkd symlink /etc/resolv.conf 到 stub-resolv.conf" {
     assert_file_contains modules/network-networkd.sh 'stub-resolv.conf'
 }
+@test "section 10: network-networkd resolv.conf symlink 必须宿主侧(arch-chroot bind 致 EBUSY)" {
+    # arch-chroot 把宿主 /etc/resolv.conf bind 进 chroot,chroot 内 ln -sf 替换它
+    # 必报 Device or resource busy(limine 构建实测)。必须宿主侧 $MNT_DIR 操作。
+    assert_file_contains_literal modules/network-networkd.sh 'ln -sf /run/systemd/resolve/stub-resolv.conf "$MNT_DIR/etc/resolv.conf"'
+    run grep -cF 'chroot_run ln -sf /run/systemd/resolve/stub-resolv.conf' modules/network-networkd.sh
+    [[ $output == 0 ]]
+}
 @test "section 10: network-networkd disable 必须在 enable socket 之前(顺序敏感)" {
     # 跳过注释行:实际命令 `disable systemd-resolved.service` 与
     # `enable systemd-resolved-varlink.socket systemd-resolved-monitor.socket`
