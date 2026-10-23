@@ -6,8 +6,10 @@ mod_install() {
     # 无 wakatime:官方仓库没有(仅 AUR 有 wakatime-cli),本安装器不用 AUR
     # opencode/shellcheck 在 alarm(aarch64)仓库不存在(包数据库比对确认缺失;
     # shellcheck 拖 haskell 栈,aarch64 未构建),alarm 跳过
+    # tree-sitter-cli:nvim(neovim)编译/校验 treesitter parser 需要;
+    # alarm 仓库也有(aarch64 extra 0.26.x 实测),放公共数组全 distro 装
     local pkgs=(git git-delta github-cli \
-        neovim vim cmake \
+        neovim vim cmake tree-sitter-cli \
         python-black patch parallel)
     [[ ${DISTRO:-arch} == alarm ]] || pkgs+=(opencode shellcheck)
     pacman_install "${pkgs[@]}"

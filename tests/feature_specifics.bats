@@ -272,6 +272,9 @@ teardown() {
 @test "section 12: dev-tools 含 shellcheck" {
     assert_word_in_file modules/dev-tools.sh 'shellcheck'
 }
+@test "section 12: dev-tools 含 tree-sitter-cli(nvim 需要)" {
+    assert_word_in_file modules/dev-tools.sh 'tree-sitter-cli'
+}
 @test "section 12: dev-tools 含 bash-language-server" {
     assert_word_in_file modules/dev-tools.sh 'bash-language-server'
 }

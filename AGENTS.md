@@ -96,6 +96,9 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
 
 ## CHANGELOG
 
+- 2026-10-23:dev-tools 新增 tree-sitter-cli([extra] 官方包)——nvim
+  编译/校验 treesitter parser 需要它,随 neovim 同行安装。
+  tests/feature_specifics.bats +1。
 - 2026-10-23:network-networkd 的 resolv.conf symlink 改宿主侧操作。原
   `chroot_run ln -sf … /etc/resolv.conf` 在真实构建中必败:arch-chroot 会把
   宿主 /etc/resolv.conf bind 进 chroot,chroot 内替换它报
