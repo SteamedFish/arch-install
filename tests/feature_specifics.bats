@@ -192,6 +192,9 @@ teardown() {
 @test "section 10: growfs 补写 fstab x-systemd.growfs" {
     assert_file_contains modules/growfs.sh 'x-systemd.growfs'
 }
+@test "section 10: base genfstab 剔除宿主 swap 泄漏" {
+    assert_file_contains modules/base.sh 'awk '"'"'\$3 != "swap"'"'"''
+}
 @test "section 10: growfs 补丁带行数防护(fstab.growfs-new)" {
     assert_file_contains modules/growfs.sh 'fstab.growfs-new'
 }

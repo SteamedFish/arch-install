@@ -96,6 +96,41 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
 
 ## CHANGELOG
 
+- 2026-10-23:base genfstab 剔除宿主 swap 泄漏。modules/base.sh 的
+  `genfstab -U` 会把宿主 /proc/swaps 的全部活动 swap 一并写进目标 fstab
+  (实测:构建 hp845g11 镜像时宿主挂着 /swap/swapfile64,镜像 fstab 混入
+  指向不存在文件的 swap 行,首启该 swap unit failed)。修复:genfstab 输出
+  经 `awk '$3 != "swap"'` 过滤;目标自身 swapfile 本就由 mem-zswap 模块
+  显式追加,不依赖 genfstab。tests/feature_specifics.bats +1(共 392 全过)。
+  另:新增 devices/hp845g11.sh(gitignored)——HP EliteBook 845 G11
+  (Ryzen 7 8840HS / Radeon 780M / 32G)桌面预设:cachyos + znver4 +
+  标准 linux-cachyos 内核 + KDE + gpu-amd + gpgpu(ROCm)+ bluetooth +
+  gui-apps + 32G swapfile(mem-zswap),镜像 64G;MY_CACHYOS_CDN 走 USTC
+  (cdn77 在本网络被重置,keyring 包下载必需)。镜像构建验证:1277 包
+  (plasma-desktop 6.8.1 / rocm 7.2.4 / linux-cachyos 7.3.0)、sddm/
+  NetworkManager/bluetooth/sshd/auditd/nftables enabled、fstab growfs
+  选项与 32G swapfile 就位、boot entry rootflags 正确。
+- 2026-09-13:新增 `blikvm/btrfs-migrate.sh`——把在跑的 BliKVM v3(PiKVM
+  v2-rpi4)系统从 stock 四分区(PIBOOT/PIPST/PIROOT/PIMSD 全 ext4)迁移为
+  **单 btrfs 分区三 subvol**(ArchLinux=/、msd、pst,共享空闲空间)的 dd-able
+  镜像,内容经 rsync(sudo)从 live 系统逐字节流式拷贝,非 fresh install。
+  调研实证(详见 docs/blikvm/06-btrfs-migration.md):linux-rpi-pikvm 的
+  CONFIG_BTRFS_FS=y(内置,不动 initramfs);kvmd 只靠 fstab 的
+  X-kvmd.{otgmsd,pst}-* 选项定位 msd/pst(fstab.py,不看 fstype);btrfs 的
+  ro/rw remount 是 superblock 级(本机实测),而 kvmd 的 MSD/PST 流程依赖
+  remount → 安装 /usr/local/bin/blikvm-kvmd-remount(bind-remount,
+  per-mount)+ sudoers.d/99_blikvm_remount + override.yaml 覆盖
+  kvmd.msd.remount_cmd / pst.remount_cmd;致命雷:kvmd-bootconfig 首启
+  (pikvm.txt 存在时)会对 X-kvmd.otgmsd 行 source 分区 parted+mkfs.ext4,
+  新布局下即根分区——脚本显式删除/拒绝 pikvm.txt。其余:cmdline 加
+  rootflags=subvol=ArchLinux(并 set-default 双保险)、msd chattr +C、
+  fstab 两行改 btrfs subvol、12 项静态断言 + qemu chroot 真跑 kvmd -m。
+  残留差异:手动 `ro` 会把整个 btrfs(含 msd/pst)翻 ro 直到 `rw`(在跑
+  系统 cmdline 本就 rw 常开,无实际影响)。镜像做小(6G,数据 ~4.8G)+
+  首启自动扩容:`blikvm-growfs.service` oneshot 把 p2 扩到卡尾
+  (parted ---pretend-input-tty resizepart,注意 `-s` 仍会交互)+
+  btrfs filesystem resize max,幂等;为此镜像内补装 btrfs-progs
+  (唯一增量包)。dd 写入量 ~5 倍减少。
 - 2026-09-02:alarm 缺失包门禁补全(hwinfo/vi/shellcheck/biome)。构建实挂在
   cli-tools 的 hwinfo(target not found)后,改打地鼠为全量审计:下载 alarm
   aarch64 core/extra/alarm/aur + archlinuxcn aarch64 五库包数据库本地比对

@@ -25,7 +25,11 @@ mod_install() {
     fi
 
     log "生成 fstab"
-    genfstab -U "$MNT_DIR" >>"${MNT_DIR}/etc/fstab"
+    # genfstab 会把宿主 /proc/swaps 的全部活动 swap 一并写入(与目标无关;
+    # 2026-10-23 实测宿主 /swap/swapfile64 泄漏进 hp845g11 镜像 fstab,首启
+    # 该 swap unit 指向不存在文件而 failed)。统一剔除 swap 行:目标自身的
+    # swapfile 由 mem-zswap 模块显式追加,不经 genfstab。
+    genfstab -U "$MNT_DIR" | awk '$3 != "swap"' >>"${MNT_DIR}/etc/fstab"
 
     log "locale / 时区 / hostname"
     sed -i 's/^#\(en_US.UTF-8 UTF-8\)/\1/; s/^#\(zh_CN.UTF-8 UTF-8\)/\1/' \
