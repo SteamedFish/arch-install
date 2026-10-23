@@ -110,6 +110,20 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
   (plasma-desktop 6.8.1 / rocm 7.2.4 / linux-cachyos 7.3.0)、sddm/
   NetworkManager/bluetooth/sshd/auditd/nftables enabled、fstab growfs
   选项与 32G swapfile 就位、boot entry rootflags 正确。
+- 2026-09-17:`modules/network-networkd.sh` 三件套修复 DNS——`disable
+  systemd-resolved.service` 后**反向 enable** 它 `[Install] Also=` 段联动的
+  `systemd-resolved-varlink.socket` + `systemd-resolved-monitor.socket`,并
+  `ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf`。根因:
+  systemd-resolved.service 的 [Install] 段含 `Also=…varlink.socket …monitor.socket`
+  (systemd ≥ 254 实测),`systemctl disable` 通过 Also= 联动 socket 一起禁掉;
+  此时 networkd 经 D-Bus 推 DNS 时无人接收,`/run/systemd/resolve/` 永不创建,
+  `/etc/resolv.conf` 留 filesystem 包自带的空模板。修复后:service 仍 disabled
+  (无持久进程),socket 由 D-Bus 按需拉起 resolved,resolved 写 stub-resolv.conf
+  后退出,`/etc/resolv.conf` symlink 读到 nameserver。顺序敏感:disable 必须在
+  enable 之前(否则 enable 会被 disable 联动再次禁掉)。opi5plus ARM 实测
+  boot 后 `nslookup archlinux.org` 返回正确 A/AAAA。tests/feature_specifics.bats
+  +5 项断言(行为 + 顺序):disable service、enable varlink、enable monitor、
+  symlink stub-resolv.conf、disable 在 enable 之前。
 - 2026-09-13:新增 `blikvm/btrfs-migrate.sh`——把在跑的 BliKVM v3(PiKVM
   v2-rpi4)系统从 stock 四分区(PIBOOT/PIPST/PIROOT/PIMSD 全 ext4)迁移为
   **单 btrfs 分区三 subvol**(ArchLinux=/、msd、pst,共享空闲空间)的 dd-able

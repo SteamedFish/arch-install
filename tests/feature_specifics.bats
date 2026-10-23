@@ -204,6 +204,31 @@ teardown() {
 @test "section 10: wait-online 改 --any" {
     assert_file_contains modules/network-networkd.sh -- --any
 }
+@test "section 10: network-networkd disable systemd-resolved.service" {
+    assert_file_contains modules/network-networkd.sh 'disable systemd-resolved.service'
+}
+@test "section 10: network-networkd 反向 enable varlink socket(防 Also= 联动禁掉)" {
+    assert_file_contains modules/network-networkd.sh 'systemd-resolved-varlink.socket'
+}
+@test "section 10: network-networkd 反向 enable monitor socket(防 Also= 联动禁掉)" {
+    assert_file_contains modules/network-networkd.sh 'systemd-resolved-monitor.socket'
+}
+@test "section 10: network-networkd symlink /etc/resolv.conf 到 stub-resolv.conf" {
+    assert_file_contains modules/network-networkd.sh 'stub-resolv.conf'
+}
+@test "section 10: network-networkd disable 必须在 enable socket 之前(顺序敏感)" {
+    # 跳过注释行:实际命令 `disable systemd-resolved.service` 与
+    # `enable systemd-resolved-varlink.socket systemd-resolved-monitor.socket`
+    # 各只出现一次(注释里也会提字符串,grep -n 会先命中注释行)
+    local f=modules/network-networkd.sh
+    local d e
+    d=$(grep -n '^[^#]*disable systemd-resolved.service' "$f" | head -1 | cut -d: -f1)
+    e=$(grep -n '^[^#]*enable systemd-resolved-varlink.socket' "$f" | head -1 | cut -d: -f1)
+    [[ -n $d && -n $e && $d -lt $e ]] || {
+        echo "disable (line $d) must precede enable (line $e)" >&2
+        return 1
+    }
+}
 @test "section 10: ESP 挂载 fmask=0077" {
     assert_file_contains lib/disk.sh 'fmask=0077'
 }
