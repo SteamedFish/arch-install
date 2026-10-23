@@ -16,6 +16,7 @@
 - **首启自动扩容**:systemd-repart,GPT 分区与 btrfs 文件系统都扩到最大
 - **btrfs 热写目录 NOCOW**:根文件系统为 btrfs 时,安装期对 `/var/log/journal` 执行 `chattr +C`;auditd 模块同款处理 `/var/log/audit`,virt 模块同款处理 `/var/lib/libvirt/images`——高频追加的日志与随机写的 VM 镜像跳过 COW,避免碎片化
 - **内存选项**:默认 `mem-zswap`(tmpfiles.d 纯配置文件 + btrfs NOCOW swapfile 后备,`MY_SWAP_SIZE` 默认 4G;`0` 退回 zram);可选 `mem-zram`(zram-generator);不想要任何 swap 就删掉该模块——两者互斥
+- **bootloader 可选**:`--bootloader systemd-boot|limine`(默认 systemd-boot)。limine 仅限 CachyOS(`limine-mkinitcpio-hook` 只在 `[cachyos]` 仓库,Arch 侧 AUR-only),且 ESP 扩到 2G(内核+initramfs 由 mkinitcpio hook 复制进 ESP)。镜像构建不写 NVRAM(`SKIP_UEFI=yes`;hook 仍部署 `EFI/BOOT/BOOTX64.EFI` 兜底路径),dd 后的镜像直接走兜底路径启动;需要在真机固定启动项的话,真机上跑一次 `limine-install` 即可。也可固化进 `devices/X.sh`
 - **稀疏镜像**:raw 镜像为稀疏文件(宿主机实际占用 = 真实数据量),清理时 fstrim 把释放的块 punch 回文件
 - **secrets 策略**:copy(镜像)/ firstboot(物理盘)/ keyfile(git-crypt 对称密钥)/ none
 - **隐私安全**:个人信息全在 `config/config.sh` 与 `config/hooks.sh`(gitignored),模板 tracked

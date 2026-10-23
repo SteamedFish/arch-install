@@ -27,3 +27,9 @@ teardown() {
     DRYRUN_OUT=$(./arch-install --target /tmp/x.img --profile desktop --desktop niri --dry-run 2>/dev/null)
     assert_str_contains "$DRYRUN_OUT" "desktop-niri"
 }
+
+@test "dry-run --bootloader limine(cachyos)计划输出含 Bootloader: limine" {
+    DRYRUN_OUT=$(./arch-install --target /tmp/x.img --profile server \
+        --distro cachyos --bootloader limine --dry-run 2>/dev/null)
+    assert_str_contains "$DRYRUN_OUT" "Bootloader: limine"
+}

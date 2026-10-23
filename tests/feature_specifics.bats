@@ -495,6 +495,65 @@ teardown() {
 }
 
 # ============================================================
+# section 20: --bootloader 选项(systemd-boot | limine,2026-10-23)
+# 调研依据:limine-mkinitcpio-hook 1.40.0-1 包源码(USTC 镜像下载,解包实测)
+# ============================================================
+
+@test "section 20: 默认 bootloader 为 systemd-boot" {
+    assert_file_contains arch-install 'BOOTLOADER="systemd-boot"'
+}
+@test "section 20: usage 含 --bootloader" {
+    assert_file_contains arch-install -- '--bootloader'
+}
+@test "section 20: prescan skip 列表含 --bootloader(取值参数)" {
+    grep -qF -- '--cachyos-repo|--bootloader|' arch-install
+}
+@test "section 20: parse_args 解析 --bootloader" {
+    assert_file_contains_literal arch-install '--bootloader) BOOTLOADER=$2'
+}
+@test "section 20: 未知 bootloader 直接 die" {
+    assert_file_contains_literal arch-install '未知 bootloader: $BOOTLOADER'
+}
+@test "section 20: limine 仅支持 --distro cachyos" {
+    assert_file_contains arch-install '--bootloader limine 仅支持 --distro cachyos'
+}
+@test "section 20: print_plan 输出 Bootloader 行" {
+    assert_file_contains_literal arch-install 'Bootloader: $BOOTLOADER'
+}
+@test "section 20: limine 模式跳过 mkinitcpio -P" {
+    assert_file_contains arch-install '跳过 mkinitcpio -P'
+}
+@test "section 20: ESP 大小按 bootloader 条件(limine 2GiB)" {
+    assert_file_contains lib/disk.sh 'esp_size=2GiB'
+    assert_file_contains_literal lib/disk.sh 'size=${esp_size},'
+}
+@test "section 20: install_bootloader 按 BOOTLOADER 分发" {
+    assert_file_contains lib/disk.sh 'install_bootloader_limine ;;'
+    assert_file_contains lib/disk.sh 'install_bootloader_systemd ;;'
+}
+@test "section 20: limine 先写 /etc/default/limine 再装包(hook 顺序敏感)" {
+    assert_file_contains lib/disk.sh 'chroot_write_file /etc/default/limine'
+}
+@test "section 20: SKIP_UEFI=yes 防 efibootmgr 污染宿主 NVRAM" {
+    assert_file_contains lib/disk.sh 'SKIP_UEFI=yes'
+}
+@test "section 20: limine ESP 路径指 /efi" {
+    assert_file_contains lib/disk.sh 'ESP_PATH="/efi"'
+}
+@test "section 20: KERNEL_CMDLINE 显式写(防 /proc/cmdline 回落宿主参数)" {
+    assert_file_contains_literal lib/disk.sh 'KERNEL_CMDLINE[default]+=rw root=UUID='
+}
+@test "section 20: limine 装包 limine + limine-mkinitcpio-hook" {
+    assert_file_contains lib/disk.sh 'pacman_install limine limine-mkinitcpio-hook'
+}
+@test "section 20: 无参 limine-mkinitcpio 重建全部内核到 ESP" {
+    assert_file_contains lib/disk.sh 'chroot_run limine-mkinitcpio'
+}
+@test "section 20: 删除 stale 的 /boot initramfs(stock hook 已被顶掉)" {
+    assert_file_contains_literal lib/disk.sh 'rm -f "$MNT_DIR"/boot/initramfs-*.img'
+}
+
+# ============================================================
 # section 21: alarm(aarch64) Arch Linux ARM 支持
 # ============================================================
 

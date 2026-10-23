@@ -17,6 +17,7 @@ source "$SCRIPT_DIR/lib/modules.sh"
 TARGET="" SIZE="32G" PROFILE="server" DISTRO="arch" DESKTOP="niri"
 CACHYOS_KERNEL="default" CACHYOS_REPO="auto" CPUTYPE="auto" MIRRORLIST="copy"
 EXTRA_MODULES="" SKIP_MODULES="" DRY_RUN=0 FORCE=0 DEVICE=""
+BOOTLOADER="systemd-boot"
 CONFIG_FILE="$SCRIPT_DIR/config/config.sh"
 
 usage() {
@@ -34,6 +35,7 @@ usage() {
   --desktop NAME         niri | kde(仅 desktop,默认 niri)
   --cachyos-kernel NAME  default|bore|bmq|lts|server|hardened|rt-bore|eevdf|rc
   --cachyos-repo NAME    auto|v3|v4|znver4(默认 auto,自动检测)
+  --bootloader NAME      systemd-boot | limine(默认 systemd-boot;limine 仅 cachyos)
   --cputype NAME         auto|amd|intel(默认 auto;异构构建时指定目标机 CPU,
                          如在 Intel 机器上给 AMD 机器装)
   --mirrorlist MODE      copy|original|reflector|config(默认 copy)
@@ -60,7 +62,7 @@ prescan_args() {
             --config) CONFIG_FILE=$2; shift 2 ;;
             --modules) print_modules; exit 0 ;;
             -h|--help) usage; exit 0 ;;
-            --target|--size|--profile|--distro|--desktop|--cachyos-kernel|--cachyos-repo|--cputype|--mirrorlist|--extra-modules|--skip-modules) shift 2 ;;
+            --target|--size|--profile|--distro|--desktop|--cachyos-kernel|--cachyos-repo|--bootloader|--cputype|--mirrorlist|--extra-modules|--skip-modules) shift 2 ;;
             *) shift ;;
         esac
     done
@@ -76,6 +78,7 @@ parse_args() {
             --desktop) DESKTOP=$2; shift 2 ;;
             --cachyos-kernel) CACHYOS_KERNEL=$2; shift 2 ;;
             --cachyos-repo) CACHYOS_REPO=$2; shift 2 ;;
+            --bootloader) BOOTLOADER=$2; shift 2 ;;
             --cputype) CPUTYPE=$2; shift 2 ;;
             --mirrorlist) MIRRORLIST=$2; shift 2 ;;
             --extra-modules) EXTRA_MODULES=$2; shift 2 ;;
@@ -96,6 +99,9 @@ parse_args() {
     [[ -f $SCRIPT_DIR/profiles/$PROFILE.conf ]] || die "未知 profile: $PROFILE"
     [[ $DISTRO == arch || $DISTRO == cachyos || $DISTRO == alarm ]] || die "未知 distro: $DISTRO"
     [[ $CPUTYPE =~ ^(auto|amd|intel)$ ]] || die "未知 cputype: $CPUTYPE(auto|amd|intel)"
+    [[ $BOOTLOADER == systemd-boot || $BOOTLOADER == limine ]] || die "未知 bootloader: $BOOTLOADER(systemd-boot|limine)"
+    # limine-mkinitcpio-hook 仅 [cachyos] 仓库提供(Arch 侧 AUR-only,本仓库无 AUR helper)
+    [[ $BOOTLOADER != limine || $DISTRO == cachyos ]] || die "--bootloader limine 仅支持 --distro cachyos(limine-mkinitcpio-hook 仅 [cachyos] 仓库提供)"
 }
 
 load_config() {
@@ -138,6 +144,7 @@ $([[ $TARGET_TYPE == image ]] && echo "镜像大小:  $SIZE")
 Profile:   $PROFILE$([[ $PROFILE == desktop ]] && echo "(desktop=$DESKTOP)")
 Mirrorlist: $MIRRORLIST
 微码:      $CPUTYPE
+Bootloader: $BOOTLOADER
 模块顺序:  ${RESOLVED_MODULES[*]}
 EOF
 }
@@ -193,8 +200,15 @@ main() {
     else
         pacman_install $KERNEL_PKGS
     fi
-    chroot_run mkinitcpio -P
-    install_bootloader            # bootctl + entries(lib/disk.sh)
+    # limine 模式:initramfs 由 install_bootloader 内的 limine-mkinitcpio 直接重建到
+    # ESP;此处 -P 只会产出一遍随即被删的 /boot initramfs(stock hook 已被 limine
+    # 的 90-mkinitcpio-install.hook 顶掉,/boot 里的永不再更新),跳过
+    if [[ $BOOTLOADER == limine ]]; then
+        info "bootloader=limine:跳过 mkinitcpio -P(由 limine-mkinitcpio 重建到 ESP)"
+    else
+        chroot_run mkinitcpio -P
+    fi
+    install_bootloader            # bootctl + entries 或 limine-mkinitcpio(lib/disk.sh)
 
     local m
     for m in "${RESOLVED_MODULES[@]}"; do

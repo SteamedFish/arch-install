@@ -96,6 +96,31 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
 
 ## CHANGELOG
 
+- 2026-10-23:新增 `--bootloader systemd-boot|limine` 选项(默认 systemd-boot)。
+  limine 模式仅限 `--distro cachyos`(limine / limine-mkinitcpio-hook 仅 [cachyos]
+  仓库提供,Arch 侧 AUR-only,本仓库无 AUR helper)。调研依据:limine-mkinitcpio-hook
+  1.40.0-1 包源码(USTC 镜像下载解包实测)。要点:
+  - ESP 扩到 2G:limine 只读 FAT 系,内核+initramfs 由 hook 复制到 ESP 的
+    <machine-id>/<kernel-pkg>/ 目录(BOOT_KERNEL_DIR),256MiB 不够;
+    CachyOS 官方 calamares 同款 2G(lib/disk.sh partition_and_mount 的 esp_size)
+  - `/etc/default/limine` 必须先于装包写好:80-limine-efi-deploy.hook 在 limine
+    与 limine-mkinitcpio-hook 的 Install/Upgrade 的 PostTransaction 触发
+    limine-install;SKIP_UEFI=yes 使其跳过 efibootmgr NVRAM 注册(chroot 里跑
+    efibootmgr 会写构建宿主的 NVRAM——污染宿主)与 UEFI 检查,但仍部署
+    EFI/limine/limine_x64.efi 与 EFI/BOOT/BOOTX64.EFI 兜底(ENABLE_LIMINE_FALLBACK=yes)
+  - KERNEL_CMDLINE 必须显式:不设则回落 /etc/kernel/cmdline 再 /proc/cmdline,
+    而 chroot 里 /proc/cmdline 是构建宿主的参数;`+=` 从空开始拼,忽略两个回落源
+  - 装完 `chroot_run limine-mkinitcpio`(无参=rebuild 全部内核:mkinitcpio 生成
+    → 复制到 ESP → limine-entry-tool 写 /efi/limine.conf 条目,自动 BLAKE2 校验);
+    主入口的 `mkinitcpio -P` 在 limine 模式跳过(只会产出随即被删的 /boot initramfs)
+  - 删除 stale 的 /boot/initramfs-*.img:内核初装时 stock mkinitcpio hook 已在
+    /boot 建过 initramfs,装 limine-mkinitcpio-hook 后其
+    /etc/pacman.d/hooks/90-mkinitcpio-install.hook 顶掉 stock hook,/boot 里的
+    永不再更新——故 limine 镜像不可与 systemd-boot 条目混用
+  - microcode 不需单独处理:mkinitcpio ≥42.2 默认 HOOKS 含 microcode,内嵌 early CPIO
+  - TARGET_OS_NAME 显式写 "CachyOS":收尾 machine-id 被清空(dd 防撞),显式名字
+    保证 limine-entry-tool 始终匹配本条目
+  tests/feature_specifics.bats +17(section 20)、tests/dryrun.bats +1,全过。
 - 2026-10-23:base genfstab 剔除宿主 swap 泄漏。modules/base.sh 的
   `genfstab -U` 会把宿主 /proc/swaps 的全部活动 swap 一并写进目标 fstab
   (实测:构建 hp845g11 镜像时宿主挂着 /swap/swapfile64,镜像 fstab 混入

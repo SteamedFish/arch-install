@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # lib/disk.sh — 安装目标识别、分区、格式化、挂载、引导安装、cleanup
 # 分区方案(与原脚本一致,符合 systemd DPS,systemd-repart 可直接扩容):
-#   p1 EFI System   256MiB fat32 → /efi
+#   p1 EFI System   256MiB fat32 → /efi(limine 模式 2GiB:内核+initramfs
+#     由 limine-mkinitcpio-hook 复制到 ESP 的 <machine-id>/<kernel-pkg>/,256MiB 不够)
 #   p2 XBOOTLDR     1GiB   ext4  → /boot
 #   p3 Linux root   剩余   btrfs,subvol ArchLinux(rootflags=subvol=/ArchLinux)
 # 全局输出:TARGET_TYPE LOOP_DEV PART_EFI PART_XBOOT PART_ROOT MNT_DIR
@@ -77,6 +78,11 @@ partition_and_mount() {
     local dev=$TARGET
     [[ $TARGET_TYPE == image ]] && dev=$LOOP_DEV
     log "分区: $dev"
+    # limine 只支持 FAT 系文件系统,内核+initramfs 由 limine-mkinitcpio-hook 复制到
+    # ESP 的 <machine-id>/<kernel-pkg>/ 目录(BOOT_KERNEL_DIR),256MiB 放不下;
+    # CachyOS 官方 calamares 同款用 2GiB
+    local esp_size=256MiB
+    [[ ${BOOTLOADER:-systemd-boot} == limine ]] && esp_size=2GiB
     # 根分区 GUID 按架构(Discoverable Partitions Spec):aarch64 用
     # "Linux root (ARM-64)";systemd-repart 的 Type=root 按架构自动匹配,
     # modules/growfs.sh 无需跟着变
@@ -88,7 +94,7 @@ partition_and_mount() {
     sfdisk --no-reread "$dev" <<_EOF_
 label: gpt
 unit: sectors
-size=256MiB, name="EFI System", type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B
+size=${esp_size}, name="EFI System", type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B
 size=1GiB, name="Linux extended boot", attrs="LegacyBIOSBootable", type=BC13C2FF-59E6-4262-A352-B275FD6F7172
 name="$root_name", type=$root_guid
 _EOF_
@@ -124,7 +130,15 @@ _EOF_
     mount -o noatime "$PART_XBOOT" "$MNT_DIR"/boot
 }
 
+# 分发:--bootloader systemd-boot|limine(默认 systemd-boot)
 install_bootloader() {
+    case ${BOOTLOADER:-systemd-boot} in
+        limine) install_bootloader_limine ;;
+        *)      install_bootloader_systemd ;;
+    esac
+}
+
+install_bootloader_systemd() {
     log "安装 systemd-boot"
     chroot_run bootctl --esp-path=/efi --boot-path=/boot --no-variables install
 
@@ -195,6 +209,41 @@ options root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations
 EOF
         fi
     fi
+}
+
+# limine 引导(limine-mkinitcpio-hook 1.40.0-1 包内源码实测):
+# - /etc/default/limine 必须先于装包写好:80-limine-efi-deploy.hook 在 limine 与
+#   limine-mkinitcpio-hook 的 Install/Upgrade 的 PostTransaction 触发 limine-install;
+#   SKIP_UEFI=yes 使其跳过 efibootmgr NVRAM 注册(chroot 里跑 efibootmgr 会写构建
+#   宿主的 NVRAM)与 UEFI 检查,但仍部署 EFI/limine/limine_x64.efi 与(因
+#   ENABLE_LIMINE_FALLBACK=yes)EFI/BOOT/BOOTX64.EFI 兜底 → 镜像构建安全,
+#   真机首启走 BOOTX64.EFI 兜底路径,需要固定 NVRAM 条目可在真机上跑一次 limine-install
+# - KERNEL_CMDLINE 必须显式:不设则回落 /etc/kernel/cmdline 再 /proc/cmdline——
+#   chroot 里 /proc/cmdline 是构建宿主的参数;+= 从空开始拼,忽略前两个回落源
+# - TARGET_OS_NAME:收尾 machine-id 被清空(dd/克隆防撞),显式名字保证
+#   limine-entry-tool 始终匹配本条目;ESP 上旧的 <machine-id>/ 目录在下次内核更新时自愈
+install_bootloader_limine() {
+    log "安装 limine(limine-mkinitcpio-hook)"
+    local uuid kparams=""
+    uuid=$(blkid -s UUID -o value "$PART_ROOT")
+    [[ -n ${MY_KERNEL_PARAMS:-} ]] && kparams=" $MY_KERNEL_PARAMS"
+    chroot_write_file /etc/default/limine <<EOF
+ESP_PATH="/efi"
+SKIP_UEFI=yes
+TARGET_OS_NAME="CachyOS"
+ENABLE_LIMINE_FALLBACK=yes
+ENABLE_UKI=no
+KERNEL_CMDLINE[default]+=rw root=UUID=$uuid rootfstype=btrfs rootflags=subvol=/ArchLinux mitigations=off add_efi_memmap$kparams
+EOF
+    pacman_install limine limine-mkinitcpio-hook
+    # 无参=rebuild 全部已装内核:mkinitcpio 生成 → 复制到 ESP 的
+    # <machine-id>/<kernel-pkg>/ → limine-entry-tool 写 /efi/limine.conf 条目
+    # (自动加 BLAKE2 校验);不需手写骨架 limine.conf
+    chroot_run limine-mkinitcpio
+    # 内核初装时 stock mkinitcpio hook 已在 /boot 建过 initramfs;装完 limine-mkinitcpio-hook
+    # 后 /etc/pacman.d/hooks/90-mkinitcpio-install.hook 顶掉 stock hook,/boot 里的
+    # initramfs 永不再更新,删掉避免误导(vmlinuz-* 是内核包自有文件,保留)
+    rm -f "$MNT_DIR"/boot/initramfs-*.img
 }
 
 # btrfs NOCOW 助手:仅当根文件系统为 btrfs 时对 $1(目标系统内路径,如
