@@ -96,6 +96,15 @@ systemd 无法创建 cgroup(所有 service 启动失败)。两条红线与恢复
 
 ## CHANGELOG
 
+- 2026-11-01:filesystems 模块默认启用 `btrfs-scrub@-.timer`(仅 btrfs 根)。
+  单元随 btrfs-progs 装进目标系统(`OnCalendar=monthly` + `RandomizedDelaySec=1w`
+  + `Persistent=true`),装包与 enable 同模块,符合硬约定;非 btrfs 根走 else
+  分支 info 跳过。注意 `Persistent=true` 且镜像内无 stamp 文件 → **首启立即补跑
+  一次 scrub**(systemd.timer:上次触发时间未知时立刻触发),正好校验刚 dd 的
+  介质;Nice=19/idle IO,不影响交互。lib/disk.sh 抽出 `root_fstype()` 助手
+  (内部 `|| true`,吃掉 findmnt 无匹配时的 exit 1——set -e 下的经典坑,见本文件
+  「运维安全红线」),`btrfs_nocow_dir` 改为复用,不再内联 findmnt。
+  tests/feature_specifics.bats +6(section 22;全量 463 项全过)。
 - 2026-10-23:dev-tools 新增 tree-sitter-cli([extra] 官方包)——nvim
   编译/校验 treesitter parser 需要它,随 neovim 同行安装。
   tests/feature_specifics.bats +1。

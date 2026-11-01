@@ -246,6 +246,15 @@ EOF
     rm -f "$MNT_DIR"/boot/initramfs-*.img
 }
 
+# root_fstype:输出目标根文件系统类型(安装期= MNT_DIR 的挂载类型)。
+# 取不到时输出空串:findmnt 无匹配即 exit 1,set -e 下直接调用会杀掉脚本
+# (AGENTS.md 运维安全红线里的同类坑),故必须吃掉返回值。
+# 调用方形如 `[[ $(root_fstype) == btrfs ]]`——`[[ ]]` 是条件上下文,
+# 即便无 || true 也不会触发 set -e,但函数内保留 || true 供其他上下文安全使用。
+root_fstype() {
+    findmnt --noheadings --output FSTYPE --target "$MNT_DIR" 2>/dev/null || true
+}
+
 # btrfs NOCOW 助手:仅当根文件系统为 btrfs 时对 $1(目标系统内路径,如
 # /var/log/journal)mkdir + chattr +C。目录属性由之后创建的文件继承(对既有
 # 文件不生效,安装期目录尚为空正合适);目录不存在时先创建,首启
@@ -254,9 +263,9 @@ EOF
 # Arch Wiki btrfs 页推荐对这类目录(日志、数据库、VM 镜像)禁用 COW。
 btrfs_nocow_dir() {
     local dir=$1 fstype
-    fstype=$(findmnt --noheadings --output FSTYPE --target "$MNT_DIR" 2>/dev/null) || return 0
+    fstype=$(root_fstype)
     if [[ $fstype != btrfs ]]; then
-        info "根文件系统为 $fstype(非 btrfs),跳过 NOCOW: $dir"
+        info "根文件系统为 ${fstype:-未知}(非 btrfs),跳过 NOCOW: $dir"
         return 0
     fi
     log "btrfs 根:chattr +C $dir(NOCOW)"

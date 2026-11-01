@@ -758,3 +758,30 @@ teardown() {
 @test "section 21: AGENTS 目录结构含 distro/alarm.sh" {
     assert_file_contains AGENTS.md 'distro/alarm\.sh'
 }
+
+# ---- section 22: btrfs 根默认月度 scrub ----
+@test "section 22: filesystems 启用 btrfs-scrub@-.timer" {
+    assert_file_contains_literal modules/filesystems.sh 'chroot_enable btrfs-scrub@-.timer'
+}
+
+@test "section 22: scrub 仅 btrfs 根(复用 root_fstype 守卫)" {
+    assert_file_contains_literal modules/filesystems.sh 'fstype=$(root_fstype)'
+    assert_file_contains_literal modules/filesystems.sh '[[ $fstype == btrfs ]]'
+}
+
+@test "section 22: scrub 不得无条件 enable(非 btrfs 走 else 分支)" {
+    assert_file_contains_literal modules/filesystems.sh '跳过 btrfs-scrub@-.timer'
+}
+
+@test "section 22: lib/disk.sh 提供 root_fstype 助手" {
+    assert_file_contains lib/disk.sh '^root_fstype\(\) \{'
+}
+
+@test "section 22: root_fstype 吃掉 findmnt 的 exit 1(set -e 安全)" {
+    assert_file_contains_literal lib/disk.sh 'findmnt --noheadings --output FSTYPE --target "$MNT_DIR" 2>/dev/null || true'
+}
+
+@test "section 22: btrfs_nocow_dir 复用 root_fstype(不再内联 findmnt)" {
+    assert_file_contains_literal lib/disk.sh 'fstype=$(root_fstype)'
+    assert_file_not_contains_literal lib/disk.sh 'fstype=$(findmnt --noheadings --output FSTYPE --target "$MNT_DIR" 2>/dev/null) || return 0'
+}
